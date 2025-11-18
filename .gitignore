@@ -1,0 +1,8 @@
+node_modules/
+.env
+uploads/
+*.log
+.DS_Store
+test-connection.js
+find-password.js
+TROUBLESHOOT.md
