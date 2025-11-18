@@ -26,7 +26,9 @@ export default function Login(){
         setAuthRole('admin')
         navigate('/dashboard')
       } else {
-        const data = await authAPI.studentLogin(rollNo, dob)
+        // Convert date from input format (YYYY-MM-DD) to database format
+        const formattedDob = dob // Already in YYYY-MM-DD format from date input
+        const data = await authAPI.studentLogin(rollNo, formattedDob)
         setAuthRole('student')
         setAuthStudentId(data.student.id)
         navigate('/dashboard')

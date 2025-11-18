@@ -232,15 +232,127 @@ export default function Dashboard(){
     )
   }
 
-  // Student Dashboard (simplified for now)
+  // Student Dashboard - Fetch seat allotment
+  const [seatInfo, setSeatInfo] = useState(null)
+  const [seatLoading, setSeatLoading] = useState(true)
+  const [seatError, setSeatError] = useState(null)
+
+  useEffect(() => {
+    if (!isAdmin && role === 'student') {
+      loadSeatInfo()
+    }
+  }, [role])
+
+  async function loadSeatInfo() {
+    try {
+      setSeatLoading(true)
+      setSeatError(null)
+      const data = await allotmentAPI.getMySeat()
+      setSeatInfo(data)
+    } catch (error) {
+      console.error('Failed to load seat info:', error)
+      setSeatError(error.message || 'No seat allotted yet')
+    } finally {
+      setSeatLoading(false)
+    }
+  }
+
+  // Student Dashboard
   return (
-    <div>
-      <h2 className="text-2xl font-semibold mb-6">Student Dashboard</h2>
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-8 text-center">
-        <div className="text-6xl mb-4">📋</div>
-        <div className="text-xl font-semibold text-gray-800 mb-2">Welcome, Student!</div>
-        <div className="text-gray-600">Your exam seat allotment information will appear here once assigned.</div>
-      </div>
+    <div className="max-w-4xl mx-auto">
+      <h2 className="text-3xl font-bold mb-6 text-gray-800">Student Dashboard</h2>
+      
+      {seatLoading ? (
+        <div className="bg-white border border-gray-200 rounded-xl p-12 text-center">
+          <div className="text-gray-500 text-lg">Loading your seat information...</div>
+        </div>
+      ) : seatError ? (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-12 text-center">
+          <div className="text-6xl mb-4">📋</div>
+          <div className="text-xl font-semibold text-gray-800 mb-2">No Seat Allotted Yet</div>
+          <div className="text-gray-600">Your exam seat will be assigned by the administrator.</div>
+          <div className="text-sm text-gray-500 mt-4">Please check back later or contact administration.</div>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {/* Welcome Card */}
+          <div className="bg-gradient-to-br from-green-50 to-emerald-100 border-2 border-green-200 rounded-xl p-8">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="text-6xl">✅</div>
+              <div>
+                <div className="text-2xl font-bold text-gray-800">Seat Allotted!</div>
+                <div className="text-gray-600">Your examination seat has been assigned</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Student Information */}
+          <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <span>👤</span> Student Information
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <div className="text-sm text-gray-500">Name</div>
+                <div className="text-lg font-semibold text-gray-800">{seatInfo.student_name}</div>
+              </div>
+              <div>
+                <div className="text-sm text-gray-500">Roll Number</div>
+                <div className="text-lg font-semibold text-gray-800 font-mono">{seatInfo.roll_no}</div>
+              </div>
+              <div>
+                <div className="text-sm text-gray-500">Department</div>
+                <div className="text-lg font-semibold text-gray-800">{seatInfo.department}</div>
+              </div>
+              <div>
+                <div className="text-sm text-gray-500">Academic Year</div>
+                <div className="text-lg font-semibold text-gray-800">{seatInfo.academic_year}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Seat Allotment Details */}
+          <div className="bg-gradient-to-br from-blue-50 to-cyan-100 border-2 border-blue-200 rounded-xl p-6 shadow-lg">
+            <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+              <span>🎯</span> Examination Seat Details
+            </h3>
+            <div className="grid grid-cols-3 gap-6">
+              <div className="bg-white rounded-lg p-4 text-center shadow-sm">
+                <div className="text-blue-600 text-4xl mb-2">🏢</div>
+                <div className="text-sm text-gray-500 mb-1">Room Number</div>
+                <div className="text-2xl font-bold text-gray-800">{seatInfo.room_no}</div>
+              </div>
+              <div className="bg-white rounded-lg p-4 text-center shadow-sm">
+                <div className="text-purple-600 text-4xl mb-2">📍</div>
+                <div className="text-sm text-gray-500 mb-1">Floor</div>
+                <div className="text-2xl font-bold text-gray-800">{seatInfo.floor}</div>
+              </div>
+              <div className="bg-white rounded-lg p-4 text-center shadow-sm">
+                <div className="text-green-600 text-4xl mb-2">💺</div>
+                <div className="text-sm text-gray-500 mb-1">Seat Number</div>
+                <div className="text-2xl font-bold text-gray-800">{seatInfo.seat_number}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Important Instructions */}
+          <div className="bg-amber-50 border-l-4 border-amber-400 rounded-lg p-6">
+            <div className="flex items-start gap-3">
+              <div className="text-amber-600 text-2xl">⚠️</div>
+              <div>
+                <div className="font-semibold text-gray-800 mb-2">Important Instructions</div>
+                <ul className="text-sm text-gray-700 space-y-1 list-disc list-inside">
+                  <li>Please arrive at least 30 minutes before the examination</li>
+                  <li>Bring your student ID card and hall ticket</li>
+                  <li>Report to Room {seatInfo.room_no} on Floor {seatInfo.floor}</li>
+                  <li>Your assigned seat number is {seatInfo.seat_number}</li>
+                  <li>Contact the examination office for any queries</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
