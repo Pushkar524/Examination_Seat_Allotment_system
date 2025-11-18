@@ -8,6 +8,7 @@ import RegisterStudents from './pages/RegisterStudents'
 import RegisterStaff from './pages/RegisterStaff'
 import Rooms from './pages/Rooms'
 import FinalAllotment from './pages/FinalAllotment'
+import InvigilatorAssignment from './pages/InvigilatorAssignment'
 
 export default function App(){
   return (
@@ -34,6 +35,7 @@ function ProtectedApp(){
             <Route path="/staff" element={<RegisterStaff/>} />
             <Route path="/rooms" element={<Rooms/>} />
             <Route path="/allotment" element={<FinalAllotment/>} />
+            <Route path="/assign-invigilators" element={<InvigilatorAssignment/>} />
           </Routes>
         </div>
       </div>

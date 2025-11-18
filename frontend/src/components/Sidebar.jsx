@@ -51,6 +51,7 @@ export default function Sidebar(){
               <MenuItem to="/students">REGISTER STUDENTS</MenuItem>
               <MenuItem to="/staff">REGISTER INVIGILATORS</MenuItem>
               <MenuItem to="/rooms">ROOMS</MenuItem>
+              <MenuItem to="/assign-invigilators">ASSIGN INVIGILATORS</MenuItem>
             </>
           )}
         </div>

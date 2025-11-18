@@ -167,6 +167,13 @@ export const uploadAPI = {
       body: JSON.stringify(invigilatorData),
     });
   },
+
+  assignInvigilator: async (invigilatorId, roomId) => {
+    return await apiCall(`/upload/invigilators/${invigilatorId}/assign`, {
+      method: 'PATCH',
+      body: JSON.stringify({ room_id: roomId }),
+    });
+  },
 };
 
 // Allotment APIs
@@ -211,19 +218,73 @@ export const allotmentAPI = {
 
 // Export APIs
 export const exportAPI = {
-  exportExcel: () => {
+  exportExcel: async () => {
     const token = getToken();
-    window.open(`${API_BASE_URL}/export/allotments/excel?token=${token}`, '_blank');
+    const response = await fetch(`${API_BASE_URL}/export/allotments/excel`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to export Excel');
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'seat_allotments.xlsx';
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
   },
 
-  exportPDF: () => {
+  exportPDF: async () => {
     const token = getToken();
-    window.open(`${API_BASE_URL}/export/allotments/pdf?token=${token}`, '_blank');
+    const response = await fetch(`${API_BASE_URL}/export/allotments/pdf`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to export PDF');
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'seat_allotments.pdf';
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
   },
 
-  exportRoomPDF: (roomId) => {
+  exportRoomPDF: async (roomId) => {
     const token = getToken();
-    window.open(`${API_BASE_URL}/export/allotments/pdf/room/${roomId}?token=${token}`, '_blank');
+    const response = await fetch(`${API_BASE_URL}/export/allotments/pdf/room/${roomId}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to export room PDF');
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `room_${roomId}_allotment.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
   },
 };
 

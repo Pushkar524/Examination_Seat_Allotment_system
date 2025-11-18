@@ -266,9 +266,12 @@ router.get('/rooms', authMiddleware(['admin']), async (req, res) => {
 // Get all invigilators
 router.get('/invigilators', authMiddleware(['admin']), async (req, res) => {
   try {
-    const result = await pool.query(
-      'SELECT * FROM invigilators ORDER BY invigilator_id'
-    );
+    const result = await pool.query(`
+      SELECT i.*, r.room_no, r.floor 
+      FROM invigilators i 
+      LEFT JOIN rooms r ON i.room_id = r.id 
+      ORDER BY i.invigilator_id
+    `);
     res.json(result.rows);
   } catch (error) {
     console.error('Get invigilators error:', error);
@@ -378,6 +381,44 @@ router.post('/invigilators/add', authMiddleware(['admin']), async (req, res) => 
   } catch (error) {
     console.error('Add invigilator error:', error);
     res.status(500).json({ error: 'Failed to add invigilator' });
+  }
+});
+
+// Assign invigilator to room
+router.patch('/invigilators/:id/assign', authMiddleware(['admin']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { room_id } = req.body;
+
+    // If room_id is null, we're unassigning
+    if (room_id === null) {
+      const result = await pool.query(
+        'UPDATE invigilators SET room_id = NULL WHERE id = $1 RETURNING *',
+        [id]
+      );
+      return res.json({ message: 'Invigilator unassigned successfully', invigilator: result.rows[0] });
+    }
+
+    // Check if room exists
+    const roomCheck = await pool.query('SELECT id FROM rooms WHERE id = $1', [room_id]);
+    if (roomCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Room not found' });
+    }
+
+    // Assign invigilator to room
+    const result = await pool.query(
+      'UPDATE invigilators SET room_id = $1 WHERE id = $2 RETURNING *',
+      [room_id, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Invigilator not found' });
+    }
+
+    res.json({ message: 'Invigilator assigned successfully', invigilator: result.rows[0] });
+  } catch (error) {
+    console.error('Assign invigilator error:', error);
+    res.status(500).json({ error: 'Failed to assign invigilator' });
   }
 });
 

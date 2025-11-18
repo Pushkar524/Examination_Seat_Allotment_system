@@ -39,7 +39,8 @@ router.get('/allotments/excel', authMiddleware(['admin']), async (req, res) => {
       { wch: 20 }, // department
       { wch: 12 }, // room_no
       { wch: 10 }, // floor
-      { wch: 12 }  // seat_number
+      { wch: 12 }, // seat_number
+      { wch: 25 }  // invigilator
     ];
 
     xlsx.utils.book_append_sheet(workbook, worksheet, 'Seat Allotments');
@@ -68,10 +69,12 @@ router.get('/allotments/pdf', authMiddleware(['admin']), async (req, res) => {
         s.department,
         r.room_no,
         r.floor,
-        sa.seat_number
+        sa.seat_number,
+        COALESCE(i.name, 'Not Assigned') as invigilator
       FROM seat_allotments sa
       JOIN students s ON sa.student_id = s.id
       JOIN rooms r ON sa.room_id = r.id
+      LEFT JOIN invigilators i ON r.id = i.room_id
       ORDER BY r.room_no, sa.seat_number
     `);
 
@@ -180,10 +183,12 @@ router.get('/allotments/pdf/room/:roomId', authMiddleware(['admin']), async (req
         r.room_no,
         r.floor,
         r.capacity,
-        sa.seat_number
+        sa.seat_number,
+        COALESCE(i.name, 'Not Assigned') as invigilator
       FROM seat_allotments sa
       JOIN students s ON sa.student_id = s.id
       JOIN rooms r ON sa.room_id = r.id
+      LEFT JOIN invigilators i ON r.id = i.room_id
       WHERE r.id = $1
       ORDER BY sa.seat_number
     `, [roomId]);
@@ -208,6 +213,7 @@ router.get('/allotments/pdf/room/:roomId', authMiddleware(['admin']), async (req
     doc.fontSize(14).text(`Room: ${room.room_no}`, { align: 'center' });
     doc.text(`Floor: ${room.floor}`, { align: 'center' });
     doc.text(`Capacity: ${room.capacity}`, { align: 'center' });
+    doc.text(`Invigilator: ${room.invigilator}`, { align: 'center' });
     doc.moveDown(2);
 
     // Table

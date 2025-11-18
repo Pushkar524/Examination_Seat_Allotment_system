@@ -1,7 +1,7 @@
 import React, {useState, useEffect} from 'react'
 import { useAuth } from '../context/AuthContext'
 import Modal from '../components/Modal'
-import { uploadAPI, allotmentAPI } from '../services/api'
+import { uploadAPI, allotmentAPI, exportAPI } from '../services/api'
 
 export default function FinalAllotment(){
   const { isAdmin } = useAuth()
@@ -85,6 +85,44 @@ export default function FinalAllotment(){
     }
   }
 
+  // Export handlers
+  async function handleExportExcel() {
+    try {
+      setLoading(true)
+      await exportAPI.exportExcel()
+    } catch (error) {
+      console.error('Export Excel failed:', error)
+      alert(error.message || 'Failed to export Excel')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleExportPDF() {
+    try {
+      setLoading(true)
+      await exportAPI.exportPDF()
+    } catch (error) {
+      console.error('Export PDF failed:', error)
+      alert(error.message || 'Failed to export PDF')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleExportRoomPDF(roomId) {
+    if (!roomId) return
+    try {
+      setLoading(true)
+      await exportAPI.exportRoomPDF(roomId)
+    } catch (error) {
+      console.error('Export room PDF failed:', error)
+      alert(error.message || 'Failed to export room PDF')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   // Automatic Allotment Logic
   async function performAutomaticAllotment(){
     if(students.length === 0){
@@ -141,6 +179,12 @@ export default function FinalAllotment(){
   // Get unique values for filter dropdowns
   const uniqueCourses = [...new Set(allotments.map(a => a.department).filter(c => c))]
   const uniqueRooms = [...new Set(allotments.map(a => a.room_no).filter(r => r))]
+  
+  // Create room mapping for export (room_no -> room_id)
+  const roomMapping = {}
+  rooms.forEach(room => {
+    roomMapping[room.room_no] = room.id
+  })
 
   return (
     <div>
@@ -187,7 +231,37 @@ export default function FinalAllotment(){
         </div>
         
         {isAdmin && (
-          <div className="flex justify-end gap-3">
+          <div className="flex justify-between items-center">
+            <div className="flex gap-2">
+              <button 
+                onClick={handleExportExcel}
+                disabled={allotments.length === 0 || loading}
+                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:from-gray-400 disabled:to-gray-500 text-white px-4 py-2 rounded-lg shadow transition duration-200 flex items-center gap-2"
+                title="Export all allotments to Excel"
+              >
+                <span>📊</span> Export Excel
+              </button>
+              <button 
+                onClick={handleExportPDF}
+                disabled={allotments.length === 0 || loading}
+                className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 disabled:from-gray-400 disabled:to-gray-500 text-white px-4 py-2 rounded-lg shadow transition duration-200 flex items-center gap-2"
+                title="Export all allotments to PDF"
+              >
+                <span>📄</span> Export PDF
+              </button>
+              <div className="flex gap-2 items-center">
+                <select 
+                  onChange={(e) => e.target.value && handleExportRoomPDF(roomMapping[e.target.value])}
+                  value=""
+                  disabled={uniqueRooms.length === 0 || loading}
+                  className="border-2 border-purple-500 rounded-lg px-3 py-2 disabled:bg-gray-100 disabled:border-gray-300"
+                  title="Export room-wise allotment to PDF"
+                >
+                  <option value="">🏢 Export by Room</option>
+                  {uniqueRooms.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </div>
+            </div>
             <button 
               onClick={openAutoAllot}
               disabled={loading}
