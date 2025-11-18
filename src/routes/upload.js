@@ -276,4 +276,109 @@ router.get('/invigilators', authMiddleware(['admin']), async (req, res) => {
   }
 });
 
+// Manual add endpoints
+router.post('/students/add', authMiddleware(['admin']), async (req, res) => {
+  const client = await pool.connect();
+  
+  try {
+    const { name, roll_no, date_of_birth, department, academic_year } = req.body;
+
+    if (!name || !roll_no || !date_of_birth || !department || !academic_year) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
+
+    await client.query('BEGIN');
+
+    // Create user account for student
+    const email = `${roll_no}@student.edu`;
+    const defaultPassword = await bcrypt.hash(date_of_birth, 10);
+    
+    const userResult = await client.query(
+      `INSERT INTO users (email, password, role) 
+       VALUES ($1, $2, 'student') 
+       ON CONFLICT (email) DO UPDATE SET email = EXCLUDED.email
+       RETURNING id`,
+      [email, defaultPassword]
+    );
+    
+    const userId = userResult.rows[0].id;
+
+    // Insert student data
+    const result = await client.query(
+      `INSERT INTO students (user_id, name, roll_no, date_of_birth, department, academic_year)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       ON CONFLICT (roll_no) DO UPDATE 
+       SET name = EXCLUDED.name, 
+           date_of_birth = EXCLUDED.date_of_birth,
+           department = EXCLUDED.department,
+           academic_year = EXCLUDED.academic_year
+       RETURNING *`,
+      [userId, name, roll_no, date_of_birth, department, academic_year]
+    );
+
+    await client.query('COMMIT');
+    res.json({ message: 'Student added successfully', student: result.rows[0] });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Add student error:', error);
+    
+    if (error.code === '23505') {
+      res.status(400).json({ error: 'Roll number already exists' });
+    } else {
+      res.status(500).json({ error: 'Failed to add student' });
+    }
+  } finally {
+    client.release();
+  }
+});
+
+router.post('/rooms/add', authMiddleware(['admin']), async (req, res) => {
+  try {
+    const { room_no, capacity, floor } = req.body;
+
+    if (!room_no || !capacity) {
+      return res.status(400).json({ error: 'Room number and capacity are required' });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO rooms (room_no, capacity, floor)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (room_no) DO UPDATE 
+       SET capacity = EXCLUDED.capacity,
+           floor = EXCLUDED.floor
+       RETURNING *`,
+      [room_no, capacity, floor || null]
+    );
+
+    res.json({ message: 'Room added successfully', room: result.rows[0] });
+  } catch (error) {
+    console.error('Add room error:', error);
+    res.status(500).json({ error: 'Failed to add room' });
+  }
+});
+
+router.post('/invigilators/add', authMiddleware(['admin']), async (req, res) => {
+  try {
+    const { invigilator_id, name } = req.body;
+
+    if (!invigilator_id || !name) {
+      return res.status(400).json({ error: 'Invigilator ID and name are required' });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO invigilators (invigilator_id, name)
+       VALUES ($1, $2)
+       ON CONFLICT (invigilator_id) DO UPDATE 
+       SET name = EXCLUDED.name
+       RETURNING *`,
+      [invigilator_id, name]
+    );
+
+    res.json({ message: 'Invigilator added successfully', invigilator: result.rows[0] });
+  } catch (error) {
+    console.error('Add invigilator error:', error);
+    res.status(500).json({ error: 'Failed to add invigilator' });
+  }
+});
+
 module.exports = router;

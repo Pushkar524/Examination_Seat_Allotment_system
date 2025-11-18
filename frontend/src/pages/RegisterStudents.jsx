@@ -11,6 +11,17 @@ export default function RegisterStudents(){
   const [uploadSuccess, setUploadSuccess] = useState('')
   const [uploadErrors, setUploadErrors] = useState([])
   const fileInputRef = useRef(null)
+  
+  // Manual add state
+  const [addModalOpen, setAddModalOpen] = useState(false)
+  const [studentForm, setStudentForm] = useState({
+    name: '',
+    roll_no: '',
+    date_of_birth: '',
+    department: '',
+    academic_year: ''
+  })
+  const [formError, setFormError] = useState('')
 
   useEffect(() => {
     if (isAdmin) {
@@ -70,6 +81,35 @@ export default function RegisterStudents(){
     }
   }
 
+  function openAddModal() {
+    setAddModalOpen(true)
+    setStudentForm({
+      name: '',
+      roll_no: '',
+      date_of_birth: '',
+      department: '',
+      academic_year: ''
+    })
+    setFormError('')
+  }
+
+  async function handleManualAdd(e) {
+    e.preventDefault()
+    setFormError('')
+    setLoading(true)
+
+    try {
+      await uploadAPI.addStudent(studentForm)
+      await loadStudents()
+      setAddModalOpen(false)
+      alert('Student added successfully!')
+    } catch (error) {
+      setFormError(error.message || 'Failed to add student')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div>
       <h2 className="text-2xl font-semibold mb-4">REGISTER STUDENTS</h2>
@@ -79,6 +119,12 @@ export default function RegisterStudents(){
           <h3 className="font-medium">Students List ({students.length})</h3>
           {isAdmin && (
             <div className="flex gap-2">
+              <button 
+                onClick={openAddModal} 
+                className="bg-blue-400 hover:bg-blue-500 px-4 py-2 rounded transition duration-200 flex items-center gap-2"
+              >
+                ➕ Add Manually
+              </button>
               <button 
                 onClick={openUploadModal} 
                 className="bg-green-400 hover:bg-green-500 px-4 py-2 rounded transition duration-200 flex items-center gap-2"
@@ -184,6 +230,94 @@ Jane Smith,CS2021002,2003-08-20,Computer Science,2021-2025`}
             </div>
           )}
         </div>
+      </Modal>
+
+      {/* Manual Add Modal */}
+      <Modal open={addModalOpen} title="Add Student Manually" onClose={()=>setAddModalOpen(false)}>
+        <form onSubmit={handleManualAdd} className="p-4 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+            <input
+              type="text"
+              value={studentForm.name}
+              onChange={(e) => setStudentForm({...studentForm, name: e.target.value})}
+              className="input w-full"
+              required
+              placeholder="e.g., John Doe"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Roll Number *</label>
+            <input
+              type="text"
+              value={studentForm.roll_no}
+              onChange={(e) => setStudentForm({...studentForm, roll_no: e.target.value})}
+              className="input w-full"
+              required
+              placeholder="e.g., CS2021001"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth *</label>
+            <input
+              type="date"
+              value={studentForm.date_of_birth}
+              onChange={(e) => setStudentForm({...studentForm, date_of_birth: e.target.value})}
+              className="input w-full"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Department *</label>
+            <input
+              type="text"
+              value={studentForm.department}
+              onChange={(e) => setStudentForm({...studentForm, department: e.target.value})}
+              className="input w-full"
+              required
+              placeholder="e.g., Computer Science"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Academic Year *</label>
+            <input
+              type="text"
+              value={studentForm.academic_year}
+              onChange={(e) => setStudentForm({...studentForm, academic_year: e.target.value})}
+              className="input w-full"
+              required
+              placeholder="e.g., 2021-2025"
+            />
+          </div>
+
+          {formError && (
+            <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded">
+              <p className="text-red-800 text-sm">{formError}</p>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <button
+              type="button"
+              onClick={() => setAddModalOpen(false)}
+              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition"
+              disabled={loading}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded transition"
+              disabled={loading}
+            >
+              {loading ? 'Adding...' : 'Add Student'}
+            </button>
+          </div>
+        </form>
       </Modal>
     </div>
   )

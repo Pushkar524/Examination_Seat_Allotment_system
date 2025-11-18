@@ -11,6 +11,14 @@ export default function RegisterStaff(){
   const [uploadSuccess, setUploadSuccess] = useState('')
   const [uploadErrors, setUploadErrors] = useState([])
   const fileInputRef = useRef(null)
+  
+  // Manual add state
+  const [addModalOpen, setAddModalOpen] = useState(false)
+  const [invigilatorForm, setInvigilatorForm] = useState({
+    invigilator_id: '',
+    name: ''
+  })
+  const [formError, setFormError] = useState('')
 
   useEffect(() => {
     if (isAdmin) {
@@ -70,6 +78,32 @@ export default function RegisterStaff(){
     }
   }
 
+  function openAddModal() {
+    setAddModalOpen(true)
+    setInvigilatorForm({
+      invigilator_id: '',
+      name: ''
+    })
+    setFormError('')
+  }
+
+  async function handleManualAdd(e) {
+    e.preventDefault()
+    setFormError('')
+    setLoading(true)
+
+    try {
+      await uploadAPI.addInvigilator(invigilatorForm)
+      await loadInvigilators()
+      setAddModalOpen(false)
+      alert('Invigilator added successfully!')
+    } catch (error) {
+      setFormError(error.message || 'Failed to add invigilator')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div>
       <h2 className="text-2xl font-semibold mb-4">REGISTER INVIGILATORS</h2>
@@ -79,6 +113,12 @@ export default function RegisterStaff(){
           <h3 className="font-medium">Invigilators List ({invigilators.length})</h3>
           {isAdmin && (
             <div className="flex gap-2">
+              <button 
+                onClick={openAddModal} 
+                className="bg-blue-400 hover:bg-blue-500 px-4 py-2 rounded transition duration-200 flex items-center gap-2"
+              >
+                ➕ Add Manually
+              </button>
               <button 
                 onClick={openUploadModal} 
                 className="bg-green-400 hover:bg-green-500 px-4 py-2 rounded transition duration-200 flex items-center gap-2"
@@ -175,6 +215,59 @@ Prof. Maria Johnson,INV002`}
             </div>
           )}
         </div>
+      </Modal>
+
+      {/* Manual Add Modal */}
+      <Modal open={addModalOpen} title="Add Invigilator Manually" onClose={()=>setAddModalOpen(false)}>
+        <form onSubmit={handleManualAdd} className="p-4 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Invigilator ID *</label>
+            <input
+              type="text"
+              value={invigilatorForm.invigilator_id}
+              onChange={(e) => setInvigilatorForm({...invigilatorForm, invigilator_id: e.target.value})}
+              className="input w-full"
+              required
+              placeholder="e.g., INV001"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+            <input
+              type="text"
+              value={invigilatorForm.name}
+              onChange={(e) => setInvigilatorForm({...invigilatorForm, name: e.target.value})}
+              className="input w-full"
+              required
+              placeholder="e.g., Dr. Robert Smith"
+            />
+          </div>
+
+          {formError && (
+            <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded">
+              <p className="text-red-800 text-sm">{formError}</p>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <button
+              type="button"
+              onClick={() => setAddModalOpen(false)}
+              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition"
+              disabled={loading}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded transition"
+              disabled={loading}
+            >
+              {loading ? 'Adding...' : 'Add Invigilator'}
+            </button>
+          </div>
+        </form>
       </Modal>
     </div>
   )

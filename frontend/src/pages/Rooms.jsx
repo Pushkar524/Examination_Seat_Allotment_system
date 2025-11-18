@@ -11,6 +11,15 @@ export default function Rooms(){
   const [uploadSuccess, setUploadSuccess] = useState('')
   const [uploadErrors, setUploadErrors] = useState([])
   const fileInputRef = useRef(null)
+  
+  // Manual add state
+  const [addModalOpen, setAddModalOpen] = useState(false)
+  const [roomForm, setRoomForm] = useState({
+    room_no: '',
+    capacity: '',
+    floor: ''
+  })
+  const [formError, setFormError] = useState('')
 
   useEffect(() => {
     if (isAdmin) {
@@ -70,6 +79,33 @@ export default function Rooms(){
     }
   }
 
+  function openAddModal() {
+    setAddModalOpen(true)
+    setRoomForm({
+      room_no: '',
+      capacity: '',
+      floor: ''
+    })
+    setFormError('')
+  }
+
+  async function handleManualAdd(e) {
+    e.preventDefault()
+    setFormError('')
+    setLoading(true)
+
+    try {
+      await uploadAPI.addRoom(roomForm)
+      await loadRooms()
+      setAddModalOpen(false)
+      alert('Room added successfully!')
+    } catch (error) {
+      setFormError(error.message || 'Failed to add room')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   // Calculate total capacity
   const totalCapacity = rooms.reduce((sum, room) => sum + parseInt(room.capacity || 0), 0)
 
@@ -84,12 +120,20 @@ export default function Rooms(){
             <p className="text-sm text-gray-600">Total Capacity: {totalCapacity} seats</p>
           </div>
           {isAdmin && (
-            <button 
-              onClick={openUploadModal} 
-              className="bg-green-400 hover:bg-green-500 px-4 py-2 rounded transition duration-200 flex items-center gap-2"
-            >
-              📁 Import Excel/CSV
-            </button>
+            <div className="flex gap-2">
+              <button 
+                onClick={openAddModal} 
+                className="bg-blue-400 hover:bg-blue-500 px-4 py-2 rounded transition duration-200 flex items-center gap-2"
+              >
+                ➕ Add Manually
+              </button>
+              <button 
+                onClick={openUploadModal} 
+                className="bg-green-400 hover:bg-green-500 px-4 py-2 rounded transition duration-200 flex items-center gap-2"
+              >
+                📁 Import Excel/CSV
+              </button>
+            </div>
           )}
         </div>
 
@@ -183,6 +227,71 @@ R201,30,2`}
             </div>
           )}
         </div>
+      </Modal>
+
+      {/* Manual Add Modal */}
+      <Modal open={addModalOpen} title="Add Room Manually" onClose={()=>setAddModalOpen(false)}>
+        <form onSubmit={handleManualAdd} className="p-4 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Room Number *</label>
+            <input
+              type="text"
+              value={roomForm.room_no}
+              onChange={(e) => setRoomForm({...roomForm, room_no: e.target.value})}
+              className="input w-full"
+              required
+              placeholder="e.g., R101, A-203"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Capacity *</label>
+            <input
+              type="number"
+              value={roomForm.capacity}
+              onChange={(e) => setRoomForm({...roomForm, capacity: e.target.value})}
+              className="input w-full"
+              required
+              min="1"
+              placeholder="e.g., 30"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Floor</label>
+            <input
+              type="text"
+              value={roomForm.floor}
+              onChange={(e) => setRoomForm({...roomForm, floor: e.target.value})}
+              className="input w-full"
+              placeholder="e.g., 1, Ground, First Floor"
+            />
+          </div>
+
+          {formError && (
+            <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded">
+              <p className="text-red-800 text-sm">{formError}</p>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <button
+              type="button"
+              onClick={() => setAddModalOpen(false)}
+              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition"
+              disabled={loading}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded transition"
+              disabled={loading}
+            >
+              {loading ? 'Adding...' : 'Add Room'}
+            </button>
+          </div>
+        </form>
       </Modal>
     </div>
   )
