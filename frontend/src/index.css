@@ -1,0 +1,12 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root{
+  --bg: #ffffff;
+}
+
+/* small helpers that match the Figma color palette a bit */
+.btn-primary{ @apply bg-rose-300 text-black px-6 py-2 rounded; }
+.card{ @apply bg-gray-100 p-6 rounded shadow-sm; }
+.input{ @apply bg-cyan-200 px-4 py-3 rounded w-full border border-gray-300; }

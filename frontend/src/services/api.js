@@ -1,0 +1,208 @@
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+
+// Get token from localStorage
+const getToken = () => {
+  return localStorage.getItem('token');
+};
+
+// Helper function for API calls
+const apiCall = async (endpoint, options = {}) => {
+  const token = getToken();
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  };
+
+  if (token && !options.skipAuth) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      ...options,
+      headers,
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'API request failed');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('API Error:', error);
+    throw error;
+  }
+};
+
+// Authentication APIs
+export const authAPI = {
+  adminLogin: async (email, password) => {
+    const data = await apiCall('/auth/login/admin', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+      skipAuth: true,
+    });
+    if (data.token) {
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+    }
+    return data;
+  },
+
+  studentLogin: async (roll_no, date_of_birth) => {
+    const data = await apiCall('/auth/login/student', {
+      method: 'POST',
+      body: JSON.stringify({ roll_no, date_of_birth }),
+      skipAuth: true,
+    });
+    if (data.token) {
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('student', JSON.stringify(data.student));
+    }
+    return data;
+  },
+
+  logout: () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('student');
+  },
+};
+
+// Upload APIs
+export const uploadAPI = {
+  uploadStudents: async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const token = getToken();
+    const response = await fetch(`${API_BASE_URL}/upload/students/upload`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Upload failed');
+    }
+
+    return await response.json();
+  },
+
+  uploadRooms: async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const token = getToken();
+    const response = await fetch(`${API_BASE_URL}/upload/rooms/upload`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Upload failed');
+    }
+
+    return await response.json();
+  },
+
+  uploadInvigilators: async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const token = getToken();
+    const response = await fetch(`${API_BASE_URL}/upload/invigilators/upload`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Upload failed');
+    }
+
+    return await response.json();
+  },
+
+  getStudents: async () => {
+    return await apiCall('/upload/students');
+  },
+
+  getRooms: async () => {
+    return await apiCall('/upload/rooms');
+  },
+
+  getInvigilators: async () => {
+    return await apiCall('/upload/invigilators');
+  },
+};
+
+// Allotment APIs
+export const allotmentAPI = {
+  triggerAllotment: async () => {
+    return await apiCall('/allotment/allot', {
+      method: 'POST',
+    });
+  },
+
+  getAllotments: async () => {
+    return await apiCall('/allotment/allotments');
+  },
+
+  getMySeat: async () => {
+    return await apiCall('/allotment/my-seat');
+  },
+
+  updateAllotment: async (id, room_id, seat_number) => {
+    return await apiCall(`/allotment/allotments/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ room_id, seat_number }),
+    });
+  },
+
+  deleteAllotment: async (id) => {
+    return await apiCall(`/allotment/allotments/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  getStatistics: async () => {
+    return await apiCall('/allotment/statistics');
+  },
+};
+
+// Export APIs
+export const exportAPI = {
+  exportExcel: () => {
+    const token = getToken();
+    window.open(`${API_BASE_URL}/export/allotments/excel?token=${token}`, '_blank');
+  },
+
+  exportPDF: () => {
+    const token = getToken();
+    window.open(`${API_BASE_URL}/export/allotments/pdf?token=${token}`, '_blank');
+  },
+
+  exportRoomPDF: (roomId) => {
+    const token = getToken();
+    window.open(`${API_BASE_URL}/export/allotments/pdf/room/${roomId}?token=${token}`, '_blank');
+  },
+};
+
+export default {
+  authAPI,
+  uploadAPI,
+  allotmentAPI,
+  exportAPI,
+};
