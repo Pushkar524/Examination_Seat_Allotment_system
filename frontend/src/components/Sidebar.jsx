@@ -49,7 +49,7 @@ export default function Sidebar(){
             <>
               <MenuItem to="/allotment">SEAT ALLOTMENT</MenuItem>
               <MenuItem to="/students">REGISTER STUDENTS</MenuItem>
-              <MenuItem to="/staff">REGISTER STAFF</MenuItem>
+              <MenuItem to="/staff">REGISTER INVIGILATORS</MenuItem>
               <MenuItem to="/rooms">ROOMS</MenuItem>
             </>
           )}

@@ -4,7 +4,6 @@ import Sidebar from './components/Sidebar'
 import Header from './components/Header'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
-import Exams from './pages/Exams'
 import RegisterStudents from './pages/RegisterStudents'
 import RegisterStaff from './pages/RegisterStaff'
 import Rooms from './pages/Rooms'
@@ -31,7 +30,6 @@ function ProtectedApp(){
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<Dashboard/>} />
-            <Route path="/exams" element={<Exams/>} />
             <Route path="/students" element={<RegisterStudents/>} />
             <Route path="/staff" element={<RegisterStaff/>} />
             <Route path="/rooms" element={<Rooms/>} />

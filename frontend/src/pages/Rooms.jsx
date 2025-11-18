@@ -1,109 +1,187 @@
-import React, {useState, useEffect} from 'react'
-import { useData } from '../context/DataContext'
+import React, {useState, useEffect, useRef} from 'react'
 import { useAuth } from '../context/AuthContext'
 import Modal from '../components/Modal'
+import { uploadAPI } from '../services/api'
 
 export default function Rooms(){
-  const { rooms, addRoom, updateRoom, deleteRoom } = useData()
   const { isAdmin } = useAuth()
+  const [rooms, setRooms] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [uploadModalOpen, setUploadModalOpen] = useState(false)
+  const [uploadSuccess, setUploadSuccess] = useState('')
+  const [uploadErrors, setUploadErrors] = useState([])
+  const fileInputRef = useRef(null)
 
-  const empty = { name:'', floor:'', capacity:0 }
-  const [form, setForm] = useState(empty)
-  const [editingId, setEditingId] = useState(null)
+  useEffect(() => {
+    if (isAdmin) {
+      loadRooms()
+    }
+  }, [isAdmin])
 
-  useEffect(()=>{
-    if(editingId){
-      const r = rooms.find(x=>x.id===editingId)
-      if(r) setForm(r)
-    } else setForm(empty)
-  }, [editingId, rooms])
-
-  function upd(k,v){ setForm(s=>({...s,[k]:v})) }
-  function submit(e){
-    e.preventDefault()
-    if(editingId){ updateRoom(editingId, form); setEditingId(null) }
-    else addRoom(form)
-    setForm(empty)
+  async function loadRooms() {
+    try {
+      setLoading(true)
+      const data = await uploadAPI.getRooms()
+      setRooms(data)
+    } catch (error) {
+      console.error('Failed to load rooms:', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const [modalOpen, setModalOpen] = useState(false)
-  const [deleteId, setDeleteId] = useState(null)
+  function openUploadModal(){ 
+    setUploadModalOpen(true)
+    setUploadErrors([])
+    setUploadSuccess('')
+    if(fileInputRef.current) fileInputRef.current.value = ''
+  }
 
-  function openAdd(){ setEditingId(null); setModalOpen(true) }
-  function openEdit(id){ setEditingId(id); setModalOpen(true) }
+  async function handleFileUpload(e) {
+    const file = e.target.files[0]
+    if (!file) return
 
-  function confirmDelete(id){ setDeleteId(id) }
-  function doDelete(){ if(deleteId){ deleteRoom(deleteId); setDeleteId(null) } }
+    setUploadErrors([])
+    setUploadSuccess('')
+    setLoading(true)
+
+    try {
+      const result = await uploadAPI.uploadRooms(file)
+      setUploadSuccess(`✓ Successfully imported ${result.successCount} room(s)`)
+      
+      if (result.errors && result.errors.length > 0) {
+        setUploadErrors(result.errors.map(err => `${err.room_no}: ${err.error}`))
+      }
+
+      // Reload rooms list
+      await loadRooms()
+
+      // Close modal after 2 seconds if fully successful
+      if (!result.errorCount || result.errorCount === 0) {
+        setTimeout(() => {
+          setUploadModalOpen(false)
+          setUploadSuccess('')
+        }, 2000)
+      }
+    } catch (error) {
+      setUploadErrors([error.message || 'Upload failed'])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Calculate total capacity
+  const totalCapacity = rooms.reduce((sum, room) => sum + parseInt(room.capacity || 0), 0)
 
   return (
     <div>
       <h2 className="text-2xl font-semibold mb-6">ROOM MANAGEMENT</h2>
 
-      <div className="bg-white border p-4 mb-6">
+      <div className="bg-white border p-4 mb-6 shadow rounded">
         <div className="flex justify-between items-center mb-4">
-          <h3>SPECIFIC ROOMS</h3>
-          <div className="flex items-center gap-4">
-            {isAdmin && <div className="text-sm text-gray-600">Admin can add/edit/delete rooms</div>}
-            {isAdmin && <button onClick={openAdd} className="bg-rose-300 px-3 py-1 rounded">+ Add Room</button>}
+          <div>
+            <h3 className="font-medium">Examination Rooms ({rooms.length})</h3>
+            <p className="text-sm text-gray-600">Total Capacity: {totalCapacity} seats</p>
           </div>
+          {isAdmin && (
+            <button 
+              onClick={openUploadModal} 
+              className="bg-green-400 hover:bg-green-500 px-4 py-2 rounded transition duration-200 flex items-center gap-2"
+            >
+              📁 Import Excel/CSV
+            </button>
+          )}
         </div>
+
+        {loading && <div className="text-center py-4">Loading...</div>}
 
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
               <tr className="bg-gray-100">
-                <th className="border p-3">ROOM NAME</th>
+                <th className="border p-3">ROOM NO</th>
                 <th className="border p-3">FLOOR</th>
                 <th className="border p-3">CAPACITY</th>
-                <th className="border p-3">ACTIONS</th>
               </tr>
             </thead>
             <tbody>
               {rooms.map(r=> (
-                <tr key={r.id} className="h-14">
-                  <td className="border p-2">{r.name}</td>
+                <tr key={r.id} className="h-14 hover:bg-gray-50">
+                  <td className="border p-2 font-medium">{r.room_no}</td>
                   <td className="border p-2">{r.floor}</td>
                   <td className="border p-2">{r.capacity}</td>
-                  <td className="border p-2">{isAdmin ? (
-                    <div className="flex gap-2">
-                      <button onClick={()=>openEdit(r.id)} className="px-2 py-1 bg-yellow-200 rounded">Edit</button>
-                      <button onClick={()=>confirmDelete(r.id)} className="px-2 py-1 bg-rose-200 rounded">Delete</button>
-                    </div>
-                  ) : <span className="text-sm text-gray-500">—</span>}</td>
                 </tr>
               ))}
-              {rooms.length===0 && <tr className="h-12"><td className="p-4" colSpan={4}>No rooms yet</td></tr>}
+              {rooms.length===0 && !loading && (
+                <tr className="h-12"><td className="p-4 text-center text-gray-500" colSpan={3}>No rooms yet. Upload a file to add rooms.</td></tr>
+              )}
             </tbody>
           </table>
         </div>
       </div>
 
-      <Modal open={modalOpen} title={editingId ? 'Edit Room' : 'Add Room'} onClose={()=>setModalOpen(false)}>
-        <form onSubmit={(e)=>{ submit(e); setModalOpen(false) }} className="grid grid-cols-3 gap-4 items-end">
-          <div>
-            <label className="block mb-2">Room Name</label>
-            <input value={form.name} onChange={e=>upd('name', e.target.value)} className="input" />
-          </div>
-          <div>
-            <label className="block mb-2">Floor</label>
-            <input value={form.floor} onChange={e=>upd('floor', e.target.value)} className="input" />
-          </div>
-          <div>
-            <label className="block mb-2">Capacity</label>
-            <input type="number" value={form.capacity} onChange={e=>upd('capacity', Number(e.target.value))} className="input" />
+      {/* Upload Modal */}
+      <Modal open={uploadModalOpen} title="Import Rooms from Excel/CSV" onClose={()=>setUploadModalOpen(false)}>
+        <div className="p-4 space-y-4">
+          {/* Instructions */}
+          <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+            <h4 className="font-semibold text-blue-900 mb-2">📋 File Format Requirements</h4>
+            <p className="text-sm text-blue-800 mb-2">Your Excel/CSV file must contain the following columns:</p>
+            <div className="bg-white p-3 rounded border border-blue-200 text-sm font-mono">
+              room_no, capacity, floor
+            </div>
+            <div className="mt-3 space-y-1 text-sm text-blue-800">
+              <p>• <strong>room_no</strong>: Room number (e.g., R101, A-203)</p>
+              <p>• <strong>capacity</strong>: Number of seats (e.g., 30)</p>
+              <p>• <strong>floor</strong>: Floor number or name (e.g., 1, Ground)</p>
+            </div>
           </div>
 
-          <div className="col-span-3 text-right">
-            <button className="bg-rose-300 px-4 py-2 rounded">{editingId? 'Update Room' : '+ Add Room'}</button>
+          {/* Example */}
+          <div className="bg-gray-50 p-3 rounded border">
+            <h5 className="text-sm font-semibold mb-2">Example content:</h5>
+            <pre className="text-xs bg-white p-2 rounded border overflow-x-auto">
+{`room_no,capacity,floor
+R101,30,1
+R102,25,1
+R201,30,2`}
+            </pre>
           </div>
-        </form>
-      </Modal>
 
-      <Modal open={!!deleteId} title="Confirm Delete" onClose={()=>setDeleteId(null)}>
-        <div>Are you sure you want to delete this room?</div>
-        <div className="mt-4 flex justify-end gap-2">
-          <button onClick={()=>setDeleteId(null)} className="px-3 py-1 bg-gray-200 rounded">Cancel</button>
-          <button onClick={()=>{ doDelete(); setModalOpen(false) }} className="px-3 py-1 bg-rose-300 rounded">Delete</button>
+          {/* File Upload */}
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Select Excel or CSV File
+            </label>
+            <input 
+              ref={fileInputRef}
+              type="file" 
+              accept=".csv,.xlsx,.xls"
+              onChange={handleFileUpload}
+              disabled={loading}
+              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100 cursor-pointer disabled:opacity-50"
+            />
+            <p className="text-xs text-gray-500 mt-1">Accepted formats: .csv, .xlsx, .xls</p>
+          </div>
+
+          {/* Success Message */}
+          {uploadSuccess && (
+            <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded">
+              <p className="text-green-800 font-medium">{uploadSuccess}</p>
+            </div>
+          )}
+
+          {/* Error Messages */}
+          {uploadErrors.length > 0 && (
+            <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded max-h-64 overflow-y-auto">
+              <h4 className="font-semibold text-red-900 mb-2">⚠️ Upload Issues</h4>
+              <ul className="text-sm text-red-700 space-y-1">
+                {uploadErrors.map((err, idx) => (
+                  <li key={idx} className="font-mono text-xs">• {err}</li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       </Modal>
     </div>

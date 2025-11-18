@@ -1,24 +1,41 @@
 import React, {useState} from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { authAPI } from '../services/api'
 
 export default function Login(){
   const [role, setRole] = useState('admin') // 'admin' | 'student'
-  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [studentId, setStudentId] = useState('')
+  const [rollNo, setRollNo] = useState('')
+  const [dob, setDob] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
   const { setRole: setAuthRole, setStudentId: setAuthStudentId } = useAuth()
 
-  function onSubmit(e){
+  async function onSubmit(e){
     e.preventDefault()
-    // Set selected role in global auth and navigate to dashboard
-    setAuthRole(role)
-    if(role === 'student' && studentId) {
-      setAuthStudentId(studentId)
+    setError('')
+    setLoading(true)
+    
+    try {
+      if(role === 'admin') {
+        const data = await authAPI.adminLogin(email, password)
+        setAuthRole('admin')
+        navigate('/dashboard')
+      } else {
+        const data = await authAPI.studentLogin(rollNo, dob)
+        setAuthRole('student')
+        setAuthStudentId(data.student.id)
+        navigate('/dashboard')
+      }
+    } catch (err) {
+      setError(err.message || 'Login failed. Please check your credentials.')
+    } finally {
+      setLoading(false)
     }
-    navigate('/dashboard')
   }
 
   return (
@@ -37,12 +54,26 @@ export default function Login(){
           {role === 'admin' && (
             <>
               <div>
-                <label className="block mb-2">Username</label>
-                <input value={username} onChange={e=>setUsername(e.target.value)} placeholder="Enter Your Username" className="input" />
+                <label className="block mb-2">Email</label>
+                <input 
+                  type="email"
+                  value={email} 
+                  onChange={e=>setEmail(e.target.value)} 
+                  placeholder="Enter Your Email" 
+                  className="input"
+                  required
+                />
               </div>
               <div>
                 <label className="block mb-2">Password</label>
-                <input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Enter Your Password" className="input" />
+                <input 
+                  type="password" 
+                  value={password} 
+                  onChange={e=>setPassword(e.target.value)} 
+                  placeholder="Enter Your Password" 
+                  className="input"
+                  required
+                />
               </div>
             </>
           )}
@@ -50,19 +81,43 @@ export default function Login(){
           {role === 'student' && (
             <>
               <div>
-                <label className="block mb-2">Student ID</label>
-                <input value={studentId} onChange={e=>setStudentId(e.target.value)} placeholder="Enter Student ID" className="input" />
+                <label className="block mb-2">Roll Number</label>
+                <input 
+                  value={rollNo} 
+                  onChange={e=>setRollNo(e.target.value)} 
+                  placeholder="Enter Roll Number" 
+                  className="input"
+                  required
+                />
               </div>
               <div>
-                <label className="block mb-2">Date of Birth (for verification)</label>
-                <input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Enter DOB or Password" className="input" />
+                <label className="block mb-2">Date of Birth</label>
+                <input 
+                  type="date" 
+                  value={dob} 
+                  onChange={e=>setDob(e.target.value)} 
+                  placeholder="YYYY-MM-DD" 
+                  className="input"
+                  required
+                />
               </div>
             </>
           )}
 
-          <div className="text-sm text-gray-700">Forgot Passsword?</div>
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+              {error}
+            </div>
+          )}
+
           <div>
-            <button type="submit" className="btn-primary w-full py-3 mt-4">Login</button>
+            <button 
+              type="submit" 
+              className="btn-primary w-full py-3 mt-4"
+              disabled={loading}
+            >
+              {loading ? 'Logging in...' : 'Login'}
+            </button>
           </div>
         </form>
       </div>
