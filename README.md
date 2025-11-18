@@ -20,10 +20,17 @@ A comprehensive full-stack system for managing examination seat allotments with 
 - **Manual Modifications:** Admin can update seat assignments as needed
 - **Statistics Dashboard:** Real-time allotment progress tracking
 
+### Invigilator Management
+- **Room Assignment:** Assign invigilators to specific examination rooms
+- **Visual Assignment Page:** Dedicated interface for managing invigilator-room mappings
+- **Real-time Updates:** Instantly view and modify assignments
+- **Assignment Statistics:** Track assigned vs unassigned invigilators
+
 ### Export & Reports
 - **Excel Export:** Download complete allotment data as spreadsheet
 - **PDF Reports:** Generate formatted allotment documents
-- **Room-wise Reports:** Individual room allotment sheets
+- **Room-wise PDF Reports:** Individual room allotment sheets with invigilator details
+- **Automated Downloads:** Browser-based file downloads with proper authentication
 
 ## 🛠️ Tech Stack
 
@@ -193,7 +200,7 @@ Examination_Seat_Allotment_system/
    - id, room_no, capacity, floor
 
 4. **invigilators** - Invigilator information
-   - id, name, invigilator_id
+   - id, name, invigilator_id, room_id (foreign key to rooms)
 
 5. **seat_allotments** - Seat assignment records
    - id, student_id, room_id, seat_number, allotment_date
@@ -214,9 +221,17 @@ Examination_Seat_Allotment_system/
    - Click "Generate Allotments" button
    - System automatically assigns seats to all students
 
-4. **View & Export:**
-   - View complete allotment table
-   - Export as Excel or PDF for distribution
+4. **Assign Invigilators:**
+   - Navigate to "Assign Invigilators" page
+   - View all invigilators and their current assignments
+   - Use dropdown to assign invigilators to specific rooms
+   - Assignments are saved immediately
+
+5. **View & Export:**
+   - View complete allotment table with room and seat details
+   - Click "Export Excel" for spreadsheet download
+   - Click "Export PDF" for formatted document
+   - Use "Export by Room" dropdown for room-specific PDF reports
 
 ### For Students
 
@@ -262,7 +277,8 @@ Prof. Maria Johnson,INV002
 - `GET /api/upload/rooms` - Get all rooms
 - `POST /api/upload/invigilators/upload` - Bulk upload invigilators
 - `POST /api/upload/invigilators/add` - Add single invigilator
-- `GET /api/upload/invigilators` - Get all invigilators
+- `GET /api/upload/invigilators` - Get all invigilators (includes room assignment)
+- `PATCH /api/upload/invigilators/:id/assign` - Assign invigilator to room
 
 ### Seat Allotment (Admin Only)
 - `POST /api/allotment/allot` - Trigger automatic seat allotment
@@ -275,9 +291,9 @@ Prof. Maria Johnson,INV002
 - `GET /api/allotment/my-seat` - Get student's assigned seat
 
 ### Export (Admin Only)
-- `GET /api/export/allotments/excel` - Download Excel report
-- `GET /api/export/allotments/pdf` - Download PDF report
-- `GET /api/export/allotments/pdf/room/:roomId` - Room-wise PDF
+- `GET /api/export/allotments/excel` - Download Excel report (all allotments)
+- `GET /api/export/allotments/pdf` - Download PDF report (all allotments)
+- `GET /api/export/allotments/pdf/room/:roomId` - Download room-wise PDF report with invigilator details
 
 ## 🔒 Security Features
 
