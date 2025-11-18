@@ -1,248 +1,184 @@
 import React, {useState, useEffect} from 'react'
 import { useAuth } from '../context/AuthContext'
-import { useData } from '../context/DataContext'
 import Modal from '../components/Modal'
+import { uploadAPI, allotmentAPI } from '../services/api'
 
 export default function FinalAllotment(){
   const { isAdmin } = useAuth()
-  const { students, exams, rooms } = useData()
   
-  // State for totals (admin editable)
-  const [totalStudentsAlloted, setTotalStudentsAlloted] = useState(() => {
-    const saved = localStorage.getItem('totalStudentsAlloted')
-    return saved ? parseInt(saved, 10) : 0
+  // State for data from backend
+  const [students, setStudents] = useState([])
+  const [rooms, setRooms] = useState([])
+  const [allotments, setAllotments] = useState([])
+  const [statistics, setStatistics] = useState({
+    allotted_students: 0,
+    rooms_used: 0,
+    total_students: 0,
+    total_rooms: 0,
+    total_capacity: 0
   })
-  const [totalRoomsUsed, setTotalRoomsUsed] = useState(() => {
-    const saved = localStorage.getItem('totalRoomsUsed')
-    return saved ? parseInt(saved, 10) : 0
-  })
-
-  // State for allotments (seat assignments)
-  const [allotments, setAllotments] = useState(() => {
-    try {
-      const saved = localStorage.getItem('seatAllotments')
-      return saved ? JSON.parse(saved) : []
-    } catch(e) { return [] }
-  })
+  const [loading, setLoading] = useState(false)
 
   // Search and filter state
   const [searchTerm, setSearchTerm] = useState('')
   const [courseFilter, setCourseFilter] = useState('')
-  const [examFilter, setExamFilter] = useState('')
   const [roomFilter, setRoomFilter] = useState('')
 
   // Modal state
-  const [modalOpen, setModalOpen] = useState(false)
-  const [editingId, setEditingId] = useState(null)
-  const [deleteId, setDeleteId] = useState(null)
   const [autoAllotModalOpen, setAutoAllotModalOpen] = useState(false)
-  
-  // Form state for allotment
-  const emptyForm = { studentId:'', studentName:'', course:'', examination:'', roomNo:'', seatNo:'' }
-  const [form, setForm] = useState(emptyForm)
-  
-  // Automatic allotment state
-  const [autoAllotForm, setAutoAllotForm] = useState({ examId: '', roomIds: [] })
-  const [allotmentMode, setAllotmentMode] = useState('view') // 'view', 'manual', 'automatic'
+  const [selectedRoomIds, setSelectedRoomIds] = useState([])
+  const [deleteId, setDeleteId] = useState(null)
 
-  // Persist totals and allotments
-  useEffect(() => { localStorage.setItem('totalStudentsAlloted', String(totalStudentsAlloted)) }, [totalStudentsAlloted])
-  useEffect(() => { localStorage.setItem('totalRoomsUsed', String(totalRoomsUsed)) }, [totalRoomsUsed])
-  useEffect(() => { localStorage.setItem('seatAllotments', JSON.stringify(allotments)) }, [allotments])
-
-  // Auto-calculate totals from allotments
+  // Load data from backend on mount
   useEffect(() => {
-    if(allotments.length > 0) {
-      setTotalStudentsAlloted(allotments.length)
-      const uniqueRooms = new Set(allotments.map(a => a.roomNo).filter(r => r))
-      setTotalRoomsUsed(uniqueRooms.size)
+    loadAllData()
+  }, [])
+
+  async function loadAllData() {
+    try {
+      setLoading(true)
+      const [studentsData, roomsData, allotmentsData, statsData] = await Promise.all([
+        uploadAPI.getStudents(),
+        uploadAPI.getRooms(),
+        allotmentAPI.getAllotments().catch(() => []),
+        allotmentAPI.getStatistics().catch(() => ({
+          allotted_students: 0,
+          rooms_used: 0,
+          total_students: 0,
+          total_rooms: 0,
+          total_capacity: 0
+        }))
+      ])
+      
+      // Calculate total capacity from rooms
+      const totalCapacity = roomsData.reduce((sum, room) => sum + parseInt(room.capacity || 0), 0)
+      
+      setStudents(studentsData)
+      setRooms(roomsData)
+      setAllotments(allotmentsData)
+      setStatistics({
+        ...statsData,
+        total_students: studentsData.length, // Use actual student count
+        total_rooms: roomsData.length,       // Use actual room count
+        total_capacity: totalCapacity         // Use calculated capacity
+      })
+    } catch (error) {
+      console.error('Failed to load data:', error)
+    } finally {
+      setLoading(false)
     }
-  }, [allotments])
-
-  // Form handlers
-  useEffect(()=>{
-    if(editingId){
-      const a = allotments.find(x=>x.id===editingId)
-      if(a) setForm(a)
-    } else setForm(emptyForm)
-  }, [editingId, allotments])
-
-  function upd(k,v){ setForm(s=>({...s,[k]:v})) }
-
-  function openAdd(){ setEditingId(null); setModalOpen(true) }
-  function openEdit(id){ setEditingId(id); setModalOpen(true) }
-  function confirmDelete(id){ setDeleteId(id) }
-
-  function submitForm(e){
-    e.preventDefault()
-    if(editingId){
-      setAllotments(list => list.map(x => x.id === editingId ? {...x, ...form} : x))
-    } else {
-      setAllotments(list => [...list, {...form, id: Date.now().toString()}])
-    }
-    setModalOpen(false)
-    setEditingId(null)
-    setForm(emptyForm)
   }
 
-  function doDelete(){
+  function confirmDelete(id){ setDeleteId(id) }
+
+  async function doDelete(){
     if(deleteId){
-      setAllotments(list => list.filter(x => x.id !== deleteId))
-      setDeleteId(null)
+      try {
+        await allotmentAPI.deleteAllotment(deleteId)
+        setDeleteId(null)
+        await loadAllData()
+        alert('Seat allotment deleted successfully')
+      } catch (error) {
+        console.error('Delete failed:', error)
+        alert(error.message || 'Failed to delete allotment')
+      }
     }
   }
 
   // Automatic Allotment Logic
-  function performAutomaticAllotment(){
-    const { examId, roomIds } = autoAllotForm
+  async function performAutomaticAllotment(){
+    if(students.length === 0){
+      alert('No students found. Please upload students first.')
+      return
+    }
+
+    if(rooms.length === 0){
+      alert('No rooms found. Please add rooms first.')
+      return
+    }
+
+    const totalCapacity = rooms.reduce((sum, room) => sum + parseInt(room.capacity || 0), 0)
     
-    if(!examId || roomIds.length === 0){
-      alert('Please select an exam and at least one room')
+    if(students.length > totalCapacity){
+      alert(`Insufficient room capacity! Students: ${students.length}, Total Capacity: ${totalCapacity}`)
       return
     }
 
-    const selectedExam = exams.find(e => e.id === examId)
-    if(!selectedExam){
-      alert('Selected exam not found')
+    if(!window.confirm(`This will automatically allocate seats for ${students.length} students across ${rooms.length} rooms. Continue?`)){
       return
     }
 
-    // Get students who match the exam's course/subject
-    const eligibleStudents = students.filter(s => 
-      s.dept && selectedExam.subject && 
-      (s.dept.toLowerCase().includes(selectedExam.subject.toLowerCase()) ||
-       selectedExam.subject.toLowerCase().includes(s.dept.toLowerCase()))
-    )
-
-    if(eligibleStudents.length === 0){
-      alert('No eligible students found for this exam')
-      return
+    try {
+      setLoading(true)
+      const result = await allotmentAPI.generateAllotment()
+      setAutoAllotModalOpen(false)
+      await loadAllData()
+      alert(`Success! Allocated ${result.allottedSeats} students across ${result.roomsUsed} rooms.`)
+    } catch (error) {
+      console.error('Allotment failed:', error)
+      alert(error.message || 'Failed to generate seat allotment')
+    } finally {
+      setLoading(false)
     }
-
-    // Sort students by studentId (USN)
-    const sortedStudents = [...eligibleStudents].sort((a, b) => 
-      (a.studentId || '').localeCompare(b.studentId || '')
-    )
-
-    // Get selected rooms and their capacities
-    const selectedRooms = rooms.filter(r => roomIds.includes(r.id))
-    
-    if(selectedRooms.length === 0){
-      alert('Selected rooms not found')
-      return
-    }
-
-    // Calculate total capacity
-    const totalCapacity = selectedRooms.reduce((sum, room) => 
-      sum + (parseInt(room.capacity) || 0), 0
-    )
-
-    if(sortedStudents.length > totalCapacity){
-      alert(`Not enough capacity! Students: ${sortedStudents.length}, Total Capacity: ${totalCapacity}`)
-      return
-    }
-
-    // Allocate seats
-    const newAllotments = []
-    let studentIndex = 0
-    
-    for(const room of selectedRooms){
-      const roomCapacity = parseInt(room.capacity) || 0
-      
-      for(let seatNum = 1; seatNum <= roomCapacity && studentIndex < sortedStudents.length; seatNum++){
-        const student = sortedStudents[studentIndex]
-        
-        newAllotments.push({
-          id: Date.now().toString() + '_' + studentIndex,
-          studentId: student.studentId,
-          studentName: student.fullName,
-          course: student.dept,
-          examination: selectedExam.subject,
-          roomNo: room.roomNumber,
-          seatNo: seatNum.toString()
-        })
-        
-        studentIndex++
-      }
-      
-      if(studentIndex >= sortedStudents.length) break
-    }
-
-    // Add to existing allotments
-    setAllotments(prev => [...prev, ...newAllotments])
-    setAutoAllotModalOpen(false)
-    setAutoAllotForm({ examId: '', roomIds: [] })
-    alert(`Successfully allocated ${newAllotments.length} students!`)
-  }
-
-  function openManualAllot(){
-    setAllotmentMode('manual')
-    setEditingId(null)
-    setModalOpen(true)
   }
 
   function openAutoAllot(){
-    setAllotmentMode('automatic')
     setAutoAllotModalOpen(true)
   }
 
   // Filter allotments based on search and filters
   const filteredAllotments = allotments.filter(a => {
     const matchesSearch = !searchTerm || 
-      a.studentId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      a.studentName?.toLowerCase().includes(searchTerm.toLowerCase())
+      a.roll_no?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      a.student_name?.toLowerCase().includes(searchTerm.toLowerCase())
     
-    const matchesCourse = !courseFilter || a.course?.includes(courseFilter)
-    const matchesExam = !examFilter || a.examination?.includes(examFilter)
-    const matchesRoom = !roomFilter || a.roomNo?.includes(roomFilter)
+    const matchesCourse = !courseFilter || a.department?.includes(courseFilter)
+    const matchesRoom = !roomFilter || a.room_no?.includes(roomFilter)
     
-    return matchesSearch && matchesCourse && matchesExam && matchesRoom
+    return matchesSearch && matchesCourse && matchesRoom
   })
 
   // Get unique values for filter dropdowns
-  const uniqueCourses = [...new Set(allotments.map(a => a.course).filter(c => c))]
-  const uniqueExams = [...new Set(allotments.map(a => a.examination).filter(e => e))]
-  const uniqueRooms = [...new Set(allotments.map(a => a.roomNo).filter(r => r))]
+  const uniqueCourses = [...new Set(allotments.map(a => a.department).filter(c => c))]
+  const uniqueRooms = [...new Set(allotments.map(a => a.room_no).filter(r => r))]
 
   return (
     <div>
       <h2 className="text-2xl font-semibold mb-6">FINAL SEAT ALLOTMENT</h2>
       
-      <div className="grid grid-cols-2 gap-6 mb-6">
-        <div className="card">
-          <div className="text-sm text-gray-600 mb-2">TOTAL STUDENTS ALLOTED</div>
-          {isAdmin ? (
-            <input type="number" value={totalStudentsAlloted} onChange={e=>setTotalStudentsAlloted(Number(e.target.value))} className="input w-32" />
-          ) : (
-            <div className="text-2xl font-semibold">{totalStudentsAlloted}</div>
-          )}
+      <div className="grid grid-cols-4 gap-6 mb-6">
+        <div className="card bg-gradient-to-br from-cyan-50 to-blue-100">
+          <div className="text-sm text-gray-600 mb-2 font-medium">TOTAL STUDENTS</div>
+          <div className="text-3xl font-bold text-gray-800">{statistics.total_students || 0}</div>
         </div>
         
-        <div className="card">
-          <div className="text-sm text-gray-600 mb-2">TOTAL ROOMS USED</div>
-          {isAdmin ? (
-            <input type="number" value={totalRoomsUsed} onChange={e=>setTotalRoomsUsed(Number(e.target.value))} className="input w-32" />
-          ) : (
-            <div className="text-2xl font-semibold">{totalRoomsUsed}</div>
-          )}
+        <div className="card bg-gradient-to-br from-green-50 to-emerald-100">
+          <div className="text-sm text-gray-600 mb-2 font-medium">STUDENTS ALLOTTED</div>
+          <div className="text-3xl font-bold text-green-600">{statistics.allotted_students || 0}</div>
+        </div>
+
+        <div className="card bg-gradient-to-br from-purple-50 to-indigo-100">
+          <div className="text-sm text-gray-600 mb-2 font-medium">ROOMS USED</div>
+          <div className="text-3xl font-bold text-purple-600">{statistics.rooms_used || 0}</div>
+        </div>
+
+        <div className="card bg-gradient-to-br from-rose-50 to-pink-100">
+          <div className="text-sm text-gray-600 mb-2 font-medium">TOTAL CAPACITY</div>
+          <div className="text-3xl font-bold text-rose-600">{statistics.total_capacity || 0}</div>
         </div>
       </div>
 
-      <div className="bg-gray-200 p-4 mb-4">
-        <div className="grid grid-cols-4 gap-4 mb-3">
+      <div className="bg-gradient-to-r from-gray-100 to-gray-200 p-4 mb-4 rounded-lg shadow-sm">
+        <div className="grid grid-cols-3 gap-4 mb-3">
           <input 
             value={searchTerm} 
             onChange={e=>setSearchTerm(e.target.value)} 
-            placeholder="Search By Student Name Or Id" 
+            placeholder="Search By Student Name Or Roll No" 
             className="input" 
           />
           <select value={courseFilter} onChange={e=>setCourseFilter(e.target.value)} className="input">
-            <option value="">All Courses</option>
+            <option value="">All Departments</option>
             {uniqueCourses.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <select value={examFilter} onChange={e=>setExamFilter(e.target.value)} className="input">
-            <option value="">All Exams</option>
-            {uniqueExams.map(e => <option key={e} value={e}>{e}</option>)}
           </select>
           <select value={roomFilter} onChange={e=>setRoomFilter(e.target.value)} className="input">
             <option value="">All Rooms</option>
@@ -253,276 +189,186 @@ export default function FinalAllotment(){
         {isAdmin && (
           <div className="flex justify-end gap-3">
             <button 
-              onClick={openManualAllot} 
-              className="bg-blue-400 hover:bg-blue-500 text-white px-4 py-2 rounded shadow transition duration-200 flex items-center gap-2"
+              onClick={openAutoAllot}
+              disabled={loading}
+              className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 disabled:from-gray-400 disabled:to-gray-500 text-white px-6 py-2 rounded-lg shadow-lg transition duration-200 flex items-center gap-2 font-semibold"
             >
-              <span>✏️</span> Manual Allotment
-            </button>
-            <button 
-              onClick={openAutoAllot} 
-              className="bg-green-400 hover:bg-green-500 text-white px-4 py-2 rounded shadow transition duration-200 flex items-center gap-2"
-            >
-              <span>⚡</span> Automatic Allotment
+              <span>⚡</span> {loading ? 'Processing...' : 'Generate Allotments'}
             </button>
           </div>
         )}
       </div>
 
-      <div className="bg-white border rounded">
+      <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
         <table className="w-full border-collapse">
           <thead>
-            <tr className="bg-gray-100">
-              <th className="border p-3">Student Id</th>
-              <th className="border p-3">Student Name</th>
-              <th className="border p-3">Course</th>
-              <th className="border p-3">Examination</th>
-              <th className="border p-3">Room No</th>
-              <th className="border p-3">Seat No</th>
-              {isAdmin && <th className="border p-3">Actions</th>}
+            <tr className="bg-gradient-to-r from-gray-100 to-gray-200">
+              <th className="border p-3 text-left font-semibold">Roll No</th>
+              <th className="border p-3 text-left font-semibold">Student Name</th>
+              <th className="border p-3 text-left font-semibold">Department</th>
+              <th className="border p-3 text-left font-semibold">Room No</th>
+              <th className="border p-3 text-left font-semibold">Floor</th>
+              <th className="border p-3 text-left font-semibold">Seat No</th>
+              {isAdmin && <th className="border p-3 text-center font-semibold">Actions</th>}
             </tr>
           </thead>
           <tbody>
-            {filteredAllotments.length === 0 && (
-              <tr className="h-12">
+            {loading ? (
+              <tr className="h-32">
                 <td className="border p-4 text-center text-gray-500" colSpan={isAdmin ? 7 : 6}>
-                  {allotments.length === 0 ? 'No allotments yet' : 'No matching allotments found'}
+                  <div className="text-lg">Loading allotments...</div>
                 </td>
               </tr>
-            )}
-            {filteredAllotments.map(a => (
-              <tr key={a.id} className="h-12 hover:bg-gray-50">
-                <td className="border p-2">{a.studentId}</td>
-                <td className="border p-2">{a.studentName}</td>
-                <td className="border p-2">{a.course}</td>
-                <td className="border p-2">{a.examination}</td>
-                <td className="border p-2">{a.roomNo}</td>
-                <td className="border p-2">{a.seatNo}</td>
-                {isAdmin && (
-                  <td className="border p-2">
-                    <div className="flex gap-2">
-                      <button onClick={()=>openEdit(a.id)} className="px-2 py-1 bg-yellow-200 rounded text-sm">Edit</button>
-                      <button onClick={()=>confirmDelete(a.id)} className="px-2 py-1 bg-rose-200 rounded text-sm">Delete</button>
+            ) : filteredAllotments.length === 0 ? (
+              <tr className="h-32">
+                <td className="border p-4 text-center text-gray-500" colSpan={isAdmin ? 7 : 6}>
+                  {allotments.length === 0 ? (
+                    <div>
+                      <div className="text-5xl mb-3">📋</div>
+                      <div className="text-lg font-medium">No seat allotments yet</div>
+                      <div className="text-sm mt-1">Click "Generate Allotments" to automatically allocate seats</div>
                     </div>
-                  </td>
-                )}
+                  ) : (
+                    'No matching allotments found'
+                  )}
+                </td>
               </tr>
-            ))}
+            ) : (
+              filteredAllotments.map(a => (
+                <tr key={a.id} className="h-12 hover:bg-blue-50 transition-colors">
+                  <td className="border p-2 font-mono">{a.roll_no}</td>
+                  <td className="border p-2 font-medium">{a.student_name}</td>
+                  <td className="border p-2">{a.department}</td>
+                  <td className="border p-2">
+                    <span className="bg-cyan-100 px-2 py-1 rounded text-cyan-800 font-semibold">
+                      {a.room_no}
+                    </span>
+                  </td>
+                  <td className="border p-2">{a.floor}</td>
+                  <td className="border p-2">
+                    <span className="bg-purple-100 px-2 py-1 rounded text-purple-800 font-semibold">
+                      {a.seat_number}
+                    </span>
+                  </td>
+                  {isAdmin && (
+                    <td className="border p-2">
+                      <div className="flex gap-2 justify-center">
+                        <button 
+                          onClick={()=>confirmDelete(a.id)} 
+                          className="px-3 py-1 bg-rose-500 hover:bg-rose-600 text-white rounded text-sm transition-colors"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  )}
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
 
-      <Modal open={modalOpen} title={editingId ? 'Edit Allotment' : 'Manual Seat Allotment'} onClose={()=>{ setModalOpen(false); setEditingId(null) }}>
-        <form onSubmit={submitForm} className="space-y-4">
-          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-            <h3 className="font-semibold text-blue-900 mb-3 flex items-center">
-              <span className="mr-2">👤</span> Student Selection
-            </h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block mb-2 text-sm font-medium">Select Student *</label>
-                <select 
-                  value={form.studentId} 
-                  onChange={e => {
-                    const student = students.find(s => s.studentId === e.target.value)
-                    if(student){
-                      upd('studentId', student.studentId)
-                      upd('studentName', student.fullName)
-                      upd('course', student.dept)
-                    }
-                  }} 
-                  className="input w-full"
-                  required
-                >
-                  <option value="">-- Select Student --</option>
-                  {students.map(s => (
-                    <option key={s.id} value={s.studentId}>
-                      {s.studentId} - {s.fullName}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block mb-2 text-sm font-medium">Student Name</label>
-                <input 
-                  value={form.studentName} 
-                  className="input w-full bg-gray-100" 
-                  readOnly 
-                  placeholder="Auto-filled"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
-            <h3 className="font-semibold text-purple-900 mb-3 flex items-center">
-              <span className="mr-2">📝</span> Exam & Room Details
-            </h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block mb-2 text-sm font-medium">Course/Subject</label>
-                <input 
-                  value={form.course} 
-                  onChange={e=>upd('course', e.target.value)}
-                  className="input w-full bg-gray-100" 
-                  readOnly 
-                  placeholder="Auto-filled from student"
-                />
-              </div>
-              <div>
-                <label className="block mb-2 text-sm font-medium">Examination *</label>
-                <select 
-                  value={form.examination} 
-                  onChange={e=>upd('examination', e.target.value)} 
-                  className="input w-full"
-                  required
-                >
-                  <option value="">-- Select Exam --</option>
-                  {exams.map(ex => (
-                    <option key={ex.id} value={ex.subject}>
-                      {ex.subject} ({ex.date})
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block mb-2 text-sm font-medium">Room Number *</label>
-                <select 
-                  value={form.roomNo} 
-                  onChange={e=>upd('roomNo', e.target.value)} 
-                  className="input w-full"
-                  required
-                >
-                  <option value="">-- Select Room --</option>
-                  {rooms.map(r => (
-                    <option key={r.id} value={r.roomNumber}>
-                      {r.roomNumber} (Capacity: {r.capacity})
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block mb-2 text-sm font-medium">Seat Number *</label>
-                <input 
-                  type="number" 
-                  value={form.seatNo} 
-                  onChange={e=>upd('seatNo', e.target.value)} 
-                  className="input w-full"
-                  placeholder="Enter seat number"
-                  required
-                  min="1"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-2 pt-4 border-t">
-            <button 
-              type="button" 
-              onClick={()=>{ setModalOpen(false); setEditingId(null) }} 
-              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition duration-200"
-            >
-              Cancel
-            </button>
-            <button 
-              type="submit"
-              className="px-6 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded shadow-lg transition duration-200"
-            >
-              {editingId ? '✓ Update Allotment' : '+ Assign Seat'}
-            </button>
-          </div>
-        </form>
-      </Modal>
-
-      {/* Automatic Allotment Modal */}
+      {/* Automatic Allotment Confirmation Modal */}
       <Modal open={autoAllotModalOpen} title="⚡ Automatic Seat Allotment" onClose={()=>setAutoAllotModalOpen(false)}>
         <div className="space-y-4">
-          <div className="bg-gradient-to-r from-green-50 to-teal-50 p-4 rounded-lg border border-green-200">
-            <h4 className="font-semibold text-green-900 mb-2 flex items-center">
+          <div className="bg-gradient-to-r from-green-50 to-teal-50 p-5 rounded-lg border border-green-200">
+            <h4 className="font-semibold text-green-900 mb-3 flex items-center text-lg">
               <span className="mr-2">ℹ️</span> How Automatic Allotment Works
             </h4>
-            <ul className="text-sm text-green-800 space-y-1 list-disc list-inside">
-              <li>Students are matched with the selected exam based on their course/department</li>
-              <li>Seats are assigned automatically sorted by Student ID (USN)</li>
-              <li>Students are distributed across selected rooms based on room capacity</li>
+            <ul className="text-sm text-green-800 space-y-2 list-disc list-inside">
+              <li>All registered students will be allocated seats automatically</li>
+              <li>Seats are assigned sorted by Roll Number (ascending order)</li>
+              <li>Students are distributed across ALL available rooms based on room capacity</li>
               <li>Seat numbers start from 1 in each room</li>
+              <li>Existing allotments will be cleared before generating new ones</li>
             </ul>
           </div>
 
-          <div className="space-y-4">
-            <div>
-              <label className="block mb-2 text-sm font-medium">Select Examination *</label>
-              <select 
-                value={autoAllotForm.examId} 
-                onChange={e => setAutoAllotForm(prev => ({...prev, examId: e.target.value}))} 
-                className="input w-full"
-                required
-              >
-                <option value="">-- Select Exam --</option>
-                {exams.map(ex => (
-                  <option key={ex.id} value={ex.id}>
-                    {ex.subject} - {ex.date} ({ex.time})
-                  </option>
-                ))}
-              </select>
-              {autoAllotForm.examId && (
-                <p className="text-xs text-gray-600 mt-1">
-                  Students from matching courses will be auto-selected
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label className="block mb-2 text-sm font-medium">Select Rooms * (Multiple)</label>
-              <div className="border rounded-lg p-3 max-h-48 overflow-y-auto bg-white">
-                {rooms.length === 0 ? (
-                  <p className="text-sm text-gray-500">No rooms available. Please add rooms first.</p>
-                ) : (
-                  rooms.map(room => (
-                    <label key={room.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={autoAllotForm.roomIds.includes(room.id)}
-                        onChange={e => {
-                          if(e.target.checked){
-                            setAutoAllotForm(prev => ({...prev, roomIds: [...prev.roomIds, room.id]}))
-                          } else {
-                            setAutoAllotForm(prev => ({...prev, roomIds: prev.roomIds.filter(id => id !== room.id)}))
-                          }
-                        }}
-                        className="w-4 h-4"
-                      />
-                      <span className="text-sm">
-                        <strong>{room.roomNumber}</strong> - {room.building || 'N/A'} 
-                        <span className="text-gray-600"> (Capacity: {room.capacity})</span>
-                      </span>
-                    </label>
-                  ))
-                )}
+          {/* Rooms List */}
+          <div className="bg-white border border-gray-300 rounded-lg p-4">
+            <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
+              <span className="mr-2">🏢</span> Rooms to be Used ({rooms.length})
+            </h4>
+            {rooms.length === 0 ? (
+              <div className="text-center py-4 text-gray-500">
+                <p>No rooms available. Please add rooms first.</p>
               </div>
-              {autoAllotForm.roomIds.length > 0 && (
-                <p className="text-xs text-green-600 mt-1">
-                  ✓ {autoAllotForm.roomIds.length} room(s) selected | Total Capacity: {
-                    rooms.filter(r => autoAllotForm.roomIds.includes(r.id))
-                      .reduce((sum, r) => sum + (parseInt(r.capacity) || 0), 0)
-                  }
-                </p>
-              )}
+            ) : (
+              <div className="max-h-48 overflow-y-auto space-y-2">
+                {rooms.map((room, index) => (
+                  <div key={room.id} className="flex items-center justify-between bg-gray-50 hover:bg-gray-100 p-3 rounded border">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold text-sm">
+                        {index + 1}
+                      </div>
+                      <div>
+                        <div className="font-semibold text-gray-800">{room.room_no}</div>
+                        <div className="text-xs text-gray-600">Floor: {room.floor || 'N/A'}</div>
+                      </div>
+                    </div>
+                    <div className="bg-green-100 px-3 py-1 rounded-full">
+                      <span className="text-green-800 font-semibold text-sm">Capacity: {room.capacity}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="grid grid-cols-2 gap-4 text-center">
+              <div>
+                <div className="text-3xl font-bold text-blue-600">{students.length}</div>
+                <div className="text-sm text-gray-600 mt-1">Total Students</div>
+              </div>
+              <div>
+                <div className="text-3xl font-bold text-purple-600">{rooms.length}</div>
+                <div className="text-sm text-gray-600 mt-1">Available Rooms</div>
+              </div>
+              <div>
+                <div className="text-3xl font-bold text-green-600">{rooms.reduce((sum, r) => sum + parseInt(r.capacity || 0), 0)}</div>
+                <div className="text-sm text-gray-600 mt-1">Total Capacity</div>
+              </div>
+              <div>
+                <div className={`text-3xl font-bold ${
+                  students.length <= rooms.reduce((sum, r) => sum + parseInt(r.capacity || 0), 0)
+                    ? 'text-green-600'
+                    : 'text-rose-600'
+                }`}>
+                  {students.length <= rooms.reduce((sum, r) => sum + parseInt(r.capacity || 0), 0) ? 'Sufficient' : 'Exceeded'}
+                </div>
+                <div className="text-sm text-gray-600 mt-1">Capacity Status</div>
+              </div>
             </div>
           </div>
+
+          {students.length > rooms.reduce((sum, r) => sum + parseInt(r.capacity || 0), 0) && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <div className="flex items-center text-red-800">
+                <span className="text-xl mr-2">⚠️</span>
+                <div>
+                  <div className="font-semibold">Insufficient Capacity!</div>
+                  <div className="text-sm">Please add more rooms or reduce student count before allotment.</div>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="flex justify-end gap-2 pt-4 border-t">
             <button 
               type="button" 
               onClick={()=>setAutoAllotModalOpen(false)} 
-              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition duration-200"
+              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg transition duration-200"
             >
               Cancel
             </button>
             <button 
               onClick={performAutomaticAllotment}
-              className="px-6 py-2 bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 text-white rounded shadow-lg transition duration-200 flex items-center gap-2"
+              disabled={loading || students.length > rooms.reduce((sum, r) => sum + parseInt(r.capacity || 0), 0)}
+              className="px-6 py-2 bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 disabled:from-gray-400 disabled:to-gray-500 text-white rounded-lg shadow-lg transition duration-200 flex items-center gap-2 font-semibold"
             >
-              <span>⚡</span> Generate Allotments
+              <span>⚡</span> {loading ? 'Processing...' : 'Generate Allotments'}
             </button>
           </div>
         </div>

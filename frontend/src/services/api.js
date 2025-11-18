@@ -139,17 +139,44 @@ export const uploadAPI = {
     return await apiCall('/upload/students');
   },
 
+  addStudent: async (studentData) => {
+    return await apiCall('/upload/students/add', {
+      method: 'POST',
+      body: JSON.stringify(studentData),
+    });
+  },
+
   getRooms: async () => {
     return await apiCall('/upload/rooms');
+  },
+
+  addRoom: async (roomData) => {
+    return await apiCall('/upload/rooms/add', {
+      method: 'POST',
+      body: JSON.stringify(roomData),
+    });
   },
 
   getInvigilators: async () => {
     return await apiCall('/upload/invigilators');
   },
+
+  addInvigilator: async (invigilatorData) => {
+    return await apiCall('/upload/invigilators/add', {
+      method: 'POST',
+      body: JSON.stringify(invigilatorData),
+    });
+  },
 };
 
 // Allotment APIs
 export const allotmentAPI = {
+  generateAllotment: async () => {
+    return await apiCall('/allotment/allot', {
+      method: 'POST',
+    });
+  },
+
   triggerAllotment: async () => {
     return await apiCall('/allotment/allot', {
       method: 'POST',
