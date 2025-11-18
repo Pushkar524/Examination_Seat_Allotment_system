@@ -1,255 +1,235 @@
-# Examination Seat Allotment System - Backend
+# Examination Seat Allotment System
 
-A comprehensive backend system for managing examination seat allotments built with Node.js and PostgreSQL.
+A comprehensive full-stack system for managing examination seat allotments with automatic seat assignment algorithm, built with Node.js, PostgreSQL, React, and Tailwind CSS.
 
-## Features
+## 🌟 Features
 
-1. **Authentication System**
-   - Admin login with email and password
-   - Student login with roll number and date of birth
-   - JWT-based authentication
+### Authentication
+- **Admin Login:** Email and password-based authentication
+- **Student Login:** Roll number and date of birth-based authentication
+- JWT-based secure authentication system
 
-2. **Data Management**
-   - Upload students data via CSV/Excel files
-   - Upload rooms data via CSV/Excel files
-   - Upload invigilators data via CSV/Excel files
+### Data Management
+- **Bulk Upload:** Import students, rooms, and invigilators via CSV/Excel files
+- **Manual Entry:** Add individual records through user-friendly forms
+- **Real-time Updates:** Instant data synchronization across the system
 
-3. **Seat Allotment**
-   - Automatic seat assignment algorithm
-   - Manual seat modification by admin
-   - Real-time allotment statistics
+### Seat Allotment
+- **Automatic Assignment:** Intelligent algorithm distributes students across rooms based on capacity
+- **Sorted by Roll Number:** Students assigned in ascending order
+- **Manual Modifications:** Admin can update seat assignments as needed
+- **Statistics Dashboard:** Real-time allotment progress tracking
 
-4. **Export Functionality**
-   - Export seat allotments as Excel
-   - Export seat allotments as PDF
-   - Export room-wise allotment reports
+### Export & Reports
+- **Excel Export:** Download complete allotment data as spreadsheet
+- **PDF Reports:** Generate formatted allotment documents
+- **Room-wise Reports:** Individual room allotment sheets
 
-## Tech Stack
+## 🛠️ Tech Stack
 
-- **Backend:** Node.js with Express.js
-- **Database:** PostgreSQL
+### Backend
+- **Runtime:** Node.js with Express.js
+- **Database:** PostgreSQL with connection pooling
 - **Authentication:** JWT (JSON Web Tokens)
-- **File Processing:** Multer, csv-parser, xlsx
+- **File Processing:** Multer v2.0, csv-parser, xlsx
 - **PDF Generation:** PDFKit
 - **Security:** bcryptjs for password hashing
 
-## Prerequisites
+### Frontend
+- **Framework:** React 18 with Vite
+- **Styling:** Tailwind CSS
+- **Routing:** React Router DOM v6
+- **State Management:** React Context API
+- **API Communication:** Native Fetch API
+
+## 📋 Prerequisites
 
 - Node.js (v14 or higher)
 - PostgreSQL (v12 or higher)
 - npm or yarn package manager
 
-## Installation
+## 🚀 Installation & Setup
 
-1. **Clone the repository**
-   ```bash
-   cd "d:\Mini Project"
-   ```
+### 1. Clone the Repository
+```bash
+git clone https://github.com/Pushkar524/Examination_Seat_Allotment_system.git
+cd Examination_Seat_Allotment_system
+```
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+### 2. Backend Setup
 
-3. **Set up environment variables**
-   - Copy `.env.example` to `.env`
-   - Update the values in `.env` file:
-     ```
-     DB_HOST=localhost
-     DB_PORT=5432
-     DB_NAME=exam_seat_allotment
-     DB_USER=postgres
-     DB_PASSWORD=your_password
-     JWT_SECRET=your_jwt_secret_key
-     PORT=3000
-     ADMIN_EMAIL=admin@example.com
-     ADMIN_PASSWORD=admin123
-     ```
+**Install dependencies:**
+```bash
+npm install
+```
 
-4. **Create PostgreSQL database**
-   ```bash
-   # Connect to PostgreSQL
-   psql -U postgres
-   
-   # Create database
-   CREATE DATABASE exam_seat_allotment;
-   
-   # Exit psql
-   \q
-   ```
+**Configure environment variables:**
+Create a `.env` file in the root directory (use `.env.example` as template):
+```env
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=exam_seat_allotment
+DB_USER=postgres
+DB_PASSWORD=your_password
+JWT_SECRET=your_jwt_secret_key_here
+PORT=3000
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=admin123
+```
 
-5. **Initialize database tables**
-   ```bash
-   npm run init-db
-   ```
+**Create PostgreSQL database:**
+```bash
+# Connect to PostgreSQL
+psql -U postgres
 
-## Running the Application
+# Create database
+CREATE DATABASE exam_seat_allotment;
 
-**Development mode (with auto-reload):**
+# Exit
+\q
+```
+
+**Initialize database:**
+```bash
+npm run init-db
+```
+
+**Start backend server:**
+```bash
+# Development mode (with nodemon)
+npm run dev
+
+# Production mode
+npm start
+```
+
+Backend runs on: `http://localhost:3000`
+
+### 3. Frontend Setup
+
+**Navigate to frontend directory:**
+```bash
+cd frontend
+```
+
+**Install dependencies:**
+```bash
+npm install
+```
+
+**Configure environment variables:**
+Create a `.env` file in the frontend directory:
+```env
+VITE_API_BASE_URL=http://localhost:3000/api
+```
+
+**Start frontend development server:**
 ```bash
 npm run dev
 ```
 
-**Production mode:**
-```bash
-npm start
+Frontend runs on: `http://localhost:5173`
+
+## 📂 Project Structure
+
+```
+Examination_Seat_Allotment_system/
+├── src/                          # Backend source code
+│   ├── config/
+│   │   └── database.js          # PostgreSQL configuration
+│   ├── database/
+│   │   ├── init.js              # Database schema initialization
+│   │   └── migrate.js           # Migration script
+│   ├── middleware/
+│   │   └── auth.js              # JWT authentication middleware
+│   ├── routes/
+│   │   ├── auth.js              # Authentication endpoints
+│   │   ├── upload.js            # File upload & manual add endpoints
+│   │   ├── allotment.js         # Seat allotment endpoints
+│   │   └── export.js            # Export endpoints
+│   └── server.js                # Express application entry point
+├── frontend/                     # React frontend
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── Modal.jsx        # Reusable modal component
+│   │   │   └── Sidebar.jsx      # Navigation sidebar
+│   │   ├── context/
+│   │   │   ├── AuthContext.jsx  # Authentication state management
+│   │   │   └── DataContext.jsx  # Data state management
+│   │   ├── pages/
+│   │   │   ├── Login.jsx        # Login page
+│   │   │   ├── Dashboard.jsx    # Admin dashboard with statistics
+│   │   │   ├── RegisterStudents.jsx  # Student management
+│   │   │   ├── RegisterStaff.jsx     # Invigilator management
+│   │   │   ├── Rooms.jsx             # Room management
+│   │   │   └── FinalAllotment.jsx    # Seat allotment page
+│   │   ├── services/
+│   │   │   └── api.js           # API service layer
+│   │   └── App.jsx              # Main application component
+│   ├── index.html
+│   ├── tailwind.config.cjs
+│   └── vite.config.js
+├── sample-data/                  # Sample CSV files for testing
+│   ├── students.csv
+│   ├── rooms.csv
+│   └── invigilators.csv
+├── uploads/                      # Temporary upload directory (auto-created)
+├── .env.example                  # Environment template
+├── package.json                  # Backend dependencies
+└── README.md                     # This file
 ```
 
-The server will start on `http://localhost:3000`
-
-## API Documentation
-
-### Authentication Endpoints
-
-#### 1. Admin Login
-- **POST** `/api/auth/login/admin`
-- **Body:**
-  ```json
-  {
-    "email": "admin@example.com",
-    "password": "admin123"
-  }
-  ```
-- **Response:**
-  ```json
-  {
-    "message": "Login successful",
-    "token": "jwt_token_here",
-    "user": {
-      "id": 1,
-      "email": "admin@example.com",
-      "role": "admin"
-    }
-  }
-  ```
-
-#### 2. Student Login
-- **POST** `/api/auth/login/student`
-- **Body:**
-  ```json
-  {
-    "roll_no": "CS2021001",
-    "date_of_birth": "2003-05-15"
-  }
-  ```
-
-### Upload Endpoints (Admin Only)
-
-#### 3. Upload Students
-- **POST** `/api/upload/students/upload`
-- **Headers:** `Authorization: Bearer <token>`
-- **Body:** FormData with file (CSV/Excel)
-- **CSV Format:**
-  ```
-  name,roll_no,date_of_birth,department,academic_year
-  John Doe,CS2021001,2003-05-15,Computer Science,2021-2025
-  ```
-
-#### 4. Upload Rooms
-- **POST** `/api/upload/rooms/upload`
-- **Headers:** `Authorization: Bearer <token>`
-- **Body:** FormData with file (CSV/Excel)
-- **CSV Format:**
-  ```
-  room_no,capacity,floor
-  R101,30,1
-  R102,25,1
-  ```
-
-#### 5. Upload Invigilators
-- **POST** `/api/upload/invigilators/upload`
-- **Headers:** `Authorization: Bearer <token>`
-- **Body:** FormData with file (CSV/Excel)
-- **CSV Format:**
-  ```
-  name,invigilator_id
-  Dr. Smith,INV001
-  Prof. Johnson,INV002
-  ```
-
-### Allotment Endpoints
-
-#### 6. Trigger Seat Allotment
-- **POST** `/api/allotment/allot`
-- **Headers:** `Authorization: Bearer <token>`
-- **Description:** Automatically assigns seats to all students
-
-#### 7. Get All Allotments
-- **GET** `/api/allotment/allotments`
-- **Headers:** `Authorization: Bearer <token>`
-
-#### 8. Get My Seat (Student)
-- **GET** `/api/allotment/my-seat`
-- **Headers:** `Authorization: Bearer <token>`
-
-#### 9. Update Seat Allotment
-- **PUT** `/api/allotment/allotments/:id`
-- **Headers:** `Authorization: Bearer <token>`
-- **Body:**
-  ```json
-  {
-    "room_id": 2,
-    "seat_number": 15
-  }
-  ```
-
-#### 10. Delete Seat Allotment
-- **DELETE** `/api/allotment/allotments/:id`
-- **Headers:** `Authorization: Bearer <token>`
-
-#### 11. Get Statistics
-- **GET** `/api/allotment/statistics`
-- **Headers:** `Authorization: Bearer <token>`
-
-### Export Endpoints
-
-#### 12. Export as Excel
-- **GET** `/api/export/allotments/excel`
-- **Headers:** `Authorization: Bearer <token>`
-- **Response:** Downloads Excel file
-
-#### 13. Export as PDF
-- **GET** `/api/export/allotments/pdf`
-- **Headers:** `Authorization: Bearer <token>`
-- **Response:** Downloads PDF file
-
-#### 14. Export Room-wise PDF
-- **GET** `/api/export/allotments/pdf/room/:roomId`
-- **Headers:** `Authorization: Bearer <token>`
-- **Response:** Downloads PDF file for specific room
-
-### Data Management Endpoints
-
-#### 15. Get All Students
-- **GET** `/api/upload/students`
-- **Headers:** `Authorization: Bearer <token>`
-
-#### 16. Get All Rooms
-- **GET** `/api/upload/rooms`
-- **Headers:** `Authorization: Bearer <token>`
-
-#### 17. Get All Invigilators
-- **GET** `/api/upload/invigilators`
-- **Headers:** `Authorization: Bearer <token>`
-
-## Database Schema
+## 📊 Database Schema
 
 ### Tables
 
-1. **users** - Stores admin and student login credentials
-2. **students** - Student information
-3. **rooms** - Examination room details
-4. **invigilators** - Invigilator information
-5. **seat_allotments** - Seat assignment records
+1. **users** - Admin and student login credentials
+   - id, email, password, role
 
-## Sample CSV Files
+2. **students** - Student information
+   - id, user_id, name, roll_no, date_of_birth, department, academic_year
+
+3. **rooms** - Examination room details
+   - id, room_no, capacity, floor
+
+4. **invigilators** - Invigilator information
+   - id, name, invigilator_id
+
+5. **seat_allotments** - Seat assignment records
+   - id, student_id, room_id, seat_number, allotment_date
+
+## 🎯 Usage Guide
+
+### For Administrators
+
+1. **Login:** Use admin credentials (default: admin@example.com / admin123)
+
+2. **Upload Data:**
+   - Navigate to "Manage Students" and upload student CSV/Excel or add manually
+   - Navigate to "Rooms" and upload room CSV/Excel or add manually
+   - Navigate to "Invigilators" and upload invigilator CSV/Excel or add manually
+
+3. **Generate Allotment:**
+   - Go to "Seat Allotment" page
+   - Click "Generate Allotments" button
+   - System automatically assigns seats to all students
+
+4. **View & Export:**
+   - View complete allotment table
+   - Export as Excel or PDF for distribution
+
+### For Students
+
+1. **Login:** Enter roll number and date of birth
+2. **View Seat:** Dashboard displays assigned room and seat number
+
+## 📄 CSV File Format
 
 ### students.csv
 ```csv
 name,roll_no,date_of_birth,department,academic_year
 John Doe,CS2021001,2003-05-15,Computer Science,2021-2025
 Jane Smith,CS2021002,2003-08-20,Computer Science,2021-2025
-Mike Johnson,EE2021001,2003-03-10,Electrical Engineering,2021-2025
 ```
 
 ### rooms.csv
@@ -258,90 +238,112 @@ room_no,capacity,floor
 R101,30,1
 R102,25,1
 R201,30,2
-R202,25,2
 ```
 
 ### invigilators.csv
 ```csv
 name,invigilator_id
-Dr. Smith,INV001
-Prof. Johnson,INV002
-Dr. Williams,INV003
+Dr. Robert Smith,INV001
+Prof. Maria Johnson,INV002
 ```
 
-## Testing with Postman/Thunder Client
+## 🔐 API Endpoints
 
-1. **Login as Admin**
-   - POST to `/api/auth/login/admin`
-   - Copy the token from response
+### Authentication
+- `POST /api/auth/login/admin` - Admin login
+- `POST /api/auth/login/student` - Student login
 
-2. **Upload Data**
-   - Use the token in Authorization header
-   - Upload CSV/Excel files
+### Data Management (Admin Only)
+- `POST /api/upload/students/upload` - Bulk upload students
+- `POST /api/upload/students/add` - Add single student
+- `GET /api/upload/students` - Get all students
+- `POST /api/upload/rooms/upload` - Bulk upload rooms
+- `POST /api/upload/rooms/add` - Add single room
+- `GET /api/upload/rooms` - Get all rooms
+- `POST /api/upload/invigilators/upload` - Bulk upload invigilators
+- `POST /api/upload/invigilators/add` - Add single invigilator
+- `GET /api/upload/invigilators` - Get all invigilators
 
-3. **Trigger Allotment**
-   - POST to `/api/allotment/allot`
+### Seat Allotment (Admin Only)
+- `POST /api/allotment/allot` - Trigger automatic seat allotment
+- `GET /api/allotment/allotments` - Get all allotments
+- `GET /api/allotment/statistics` - Get allotment statistics
+- `PUT /api/allotment/allotments/:id` - Update seat assignment
+- `DELETE /api/allotment/allotments/:id` - Delete seat assignment
 
-4. **Export Reports**
-   - GET `/api/export/allotments/excel` or `/api/export/allotments/pdf`
+### Student Endpoints
+- `GET /api/allotment/my-seat` - Get student's assigned seat
 
-## Project Structure
+### Export (Admin Only)
+- `GET /api/export/allotments/excel` - Download Excel report
+- `GET /api/export/allotments/pdf` - Download PDF report
+- `GET /api/export/allotments/pdf/room/:roomId` - Room-wise PDF
 
-```
-d:\Mini Project\
-├── src/
-│   ├── config/
-│   │   └── database.js          # Database configuration
-│   ├── database/
-│   │   └── init.js              # Database initialization script
-│   ├── middleware/
-│   │   └── auth.js              # JWT authentication middleware
-│   ├── routes/
-│   │   ├── auth.js              # Authentication routes
-│   │   ├── upload.js            # File upload routes
-│   │   ├── allotment.js         # Seat allotment routes
-│   │   └── export.js            # Export routes
-│   └── server.js                # Main application file
-├── uploads/                     # Temporary file uploads (auto-created)
-├── .env                         # Environment variables
-├── .env.example                 # Environment template
-├── .gitignore                   # Git ignore file
-├── package.json                 # Project dependencies
-└── README.md                    # Project documentation
-```
+## 🔒 Security Features
 
-## Security Features
-
-- Password hashing using bcryptjs
-- JWT-based authentication
+- Password hashing with bcryptjs (10 salt rounds)
+- JWT token-based authentication
 - Role-based access control (Admin/Student)
-- Protected API endpoints
-- Input validation
+- Protected API routes with middleware
+- Input validation and sanitization
+- SQL injection prevention with parameterized queries
+- CORS enabled for frontend-backend communication
 
-## Error Handling
+## 🐛 Troubleshooting
 
-The API returns appropriate HTTP status codes:
-- 200: Success
-- 400: Bad Request
-- 401: Unauthorized
-- 403: Forbidden
-- 404: Not Found
-- 500: Internal Server Error
+### Backend Issues
 
-## Future Enhancements
+**Database connection error:**
+- Verify PostgreSQL is running
+- Check credentials in `.env` file
+- Ensure database exists
 
-- Email notifications to students
-- SMS notifications
-- Real-time seat availability
-- Multiple exam session support
-- Department-wise seat distribution
-- Invigilator assignment to rooms
+**Port already in use:**
+- Change PORT in `.env` file
+- Or kill existing process on port 3000
+
+### Frontend Issues
+
+**API connection error:**
+- Ensure backend server is running on port 3000
+- Check `VITE_API_BASE_URL` in frontend `.env`
+- Verify CORS is enabled in backend
+
+**Build errors:**
+- Delete `node_modules` and reinstall: `npm install`
+- Clear Vite cache: `rm -rf node_modules/.vite`
+
+## 📝 Development Notes
+
+- Default admin credentials are created during database initialization
+- Students can login using their roll number and date of birth
+- Student passwords are auto-generated from date of birth
+- Files uploaded are temporarily stored and deleted after processing
+- Duplicate entries (by roll_no/room_no/invigilator_id) will update existing records
+
+## 🚧 Future Enhancements
+
+- Email notifications for seat allotments
+- SMS integration for student notifications
+- Multi-session exam support
+- Department-wise seat clustering
+- Invigilator room assignment
 - Student attendance tracking
+- Analytics dashboard
+- Bulk student account management
 
-## License
+## 📜 License
 
 ISC
 
-## Support
+## 👨‍💻 Author
 
-For issues and questions, please create an issue in the repository.
+Pushkar524
+
+## 🔗 Repository
+
+[https://github.com/Pushkar524/Examination_Seat_Allotment_system](https://github.com/Pushkar524/Examination_Seat_Allotment_system)
+
+## 🤝 Support
+
+For issues and questions, please create an issue in the GitHub repository.
