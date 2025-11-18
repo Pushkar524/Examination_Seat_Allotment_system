@@ -60,6 +60,8 @@ router.post('/login/student', async (req, res) => {
       return res.status(400).json({ error: 'Roll number and date of birth are required' });
     }
 
+    console.log('Student login attempt:', { roll_no, date_of_birth });
+
     const result = await pool.query(
       `SELECT s.*, u.id as user_id, u.email, u.role 
        FROM students s
@@ -68,8 +70,21 @@ router.post('/login/student', async (req, res) => {
       [roll_no, date_of_birth]
     );
 
+    console.log('Query result rows:', result.rows.length);
+
     if (result.rows.length === 0) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      // Check if student exists with this roll number
+      const checkStudent = await pool.query(
+        'SELECT roll_no, date_of_birth FROM students WHERE roll_no = $1',
+        [roll_no]
+      );
+      
+      if (checkStudent.rows.length > 0) {
+        console.log('Student found but date mismatch. DB date:', checkStudent.rows[0].date_of_birth);
+        return res.status(401).json({ error: 'Invalid date of birth. Please check the format (YYYY-MM-DD).' });
+      }
+      
+      return res.status(401).json({ error: 'Invalid credentials. Student not found.' });
     }
 
     const student = result.rows[0];
