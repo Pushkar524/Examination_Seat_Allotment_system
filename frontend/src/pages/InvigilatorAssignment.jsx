@@ -100,26 +100,26 @@ export default function InvigilatorAssignment(){
       </div>
 
       {/* Invigilators Table */}
-      <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-sm overflow-hidden">
         <table className="w-full border-collapse">
           <thead>
-            <tr className="bg-gradient-to-r from-gray-100 to-gray-200">
-              <th className="border p-3 text-left font-semibold">Invigilator ID</th>
-              <th className="border p-3 text-left font-semibold">Name</th>
-              <th className="border p-3 text-left font-semibold">Current Assignment</th>
-              <th className="border p-3 text-left font-semibold">Assign to Room</th>
+            <tr className="bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600">
+              <th className="border dark:border-gray-600 p-3 text-left font-semibold dark:text-white">Invigilator ID</th>
+              <th className="border dark:border-gray-600 p-3 text-left font-semibold dark:text-white">Name</th>
+              <th className="border dark:border-gray-600 p-3 text-left font-semibold dark:text-white">Current Assignment</th>
+              <th className="border dark:border-gray-600 p-3 text-left font-semibold dark:text-white">Assign to Room</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr className="h-32">
-                <td className="border p-4 text-center text-gray-500" colSpan={4}>
+                <td className="border dark:border-gray-600 p-4 text-center text-gray-500 dark:text-gray-400" colSpan={4}>
                   <div className="text-lg">Loading invigilators...</div>
                 </td>
               </tr>
             ) : filteredInvigilators.length === 0 ? (
               <tr className="h-32">
-                <td className="border p-4 text-center text-gray-500" colSpan={4}>
+                <td className="border dark:border-gray-600 p-4 text-center text-gray-500 dark:text-gray-400" colSpan={4}>
                   {invigilators.length === 0 ? (
                     <div>
                       <div className="text-5xl mb-3">👨‍🏫</div>
@@ -133,26 +133,26 @@ export default function InvigilatorAssignment(){
               </tr>
             ) : (
               filteredInvigilators.map(inv => (
-                <tr key={inv.id} className="h-12 hover:bg-blue-50 transition-colors">
-                  <td className="border p-2 font-mono">{inv.invigilator_id}</td>
-                  <td className="border p-2 font-medium">{inv.name}</td>
-                  <td className="border p-2">
+                <tr key={inv.id} className="h-12 hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors">
+                  <td className="border dark:border-gray-600 p-2 font-mono dark:text-gray-200">{inv.invigilator_id}</td>
+                  <td className="border dark:border-gray-600 p-2 font-medium dark:text-gray-200">{inv.name}</td>
+                  <td className="border dark:border-gray-600 p-2">
                     {inv.room_id ? (
-                      <span className="bg-green-100 px-3 py-1 rounded text-green-800 font-semibold">
+                      <span className="bg-green-100 dark:bg-green-800 px-3 py-1 rounded text-green-800 dark:text-green-100 font-semibold">
                         {inv.room_no} (Floor {inv.floor})
                       </span>
                     ) : (
-                      <span className="bg-gray-100 px-3 py-1 rounded text-gray-600">
+                      <span className="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded text-gray-600 dark:text-gray-300">
                         Not Assigned
                       </span>
                     )}
                   </td>
-                  <td className="border p-2">
+                  <td className="border dark:border-gray-600 p-2">
                     <select
                       value={inv.room_id || ''}
                       onChange={(e) => handleAssignment(inv.id, e.target.value)}
                       disabled={loading}
-                      className="w-full border-2 border-blue-400 rounded-lg px-3 py-1 focus:border-blue-600 focus:outline-none disabled:bg-gray-100"
+                      className="w-full border-2 border-blue-400 dark:border-blue-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-1 focus:border-blue-600 focus:outline-none disabled:bg-gray-100 dark:disabled:bg-gray-600"
                     >
                       <option value="">-- Select Room --</option>
                       {rooms.map(room => (

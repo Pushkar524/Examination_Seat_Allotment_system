@@ -191,23 +191,23 @@ export default function RegisterStudents(){
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-gray-100">
-                <th className="border p-2">Roll No</th>
-                <th className="border p-2">Name</th>
-                <th className="border p-2">DOB</th>
-                <th className="border p-2">Department</th>
-                <th className="border p-2">Year</th>
-                {isAdmin && <th className="border p-2">Actions</th>}
+              <tr className="bg-gray-100 dark:bg-gray-700">
+                <th className="border dark:border-gray-600 p-2 dark:text-white">Roll No</th>
+                <th className="border dark:border-gray-600 p-2 dark:text-white">Name</th>
+                <th className="border dark:border-gray-600 p-2 dark:text-white">DOB</th>
+                <th className="border dark:border-gray-600 p-2 dark:text-white">Department</th>
+                <th className="border dark:border-gray-600 p-2 dark:text-white">Year</th>
+                {isAdmin && <th className="border dark:border-gray-600 p-2 dark:text-white">Actions</th>}
               </tr>
             </thead>
             <tbody>
               {students.map(s=> (
-                <tr key={s.id} className="h-12 hover:bg-gray-50">
-                  <td className="border p-2">{s.roll_no}</td>
-                  <td className="border p-2">{s.name}</td>
-                  <td className="border p-2">{s.date_of_birth}</td>
-                  <td className="border p-2">{s.department}</td>
-                  <td className="border p-2">{s.academic_year}</td>
+                <tr key={s.id} className="h-12 hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <td className="border dark:border-gray-600 p-2 dark:text-gray-200">{s.roll_no}</td>
+                  <td className="border dark:border-gray-600 p-2 dark:text-gray-200">{s.name}</td>
+                  <td className="border dark:border-gray-600 p-2 dark:text-gray-200">{s.date_of_birth}</td>
+                  <td className="border dark:border-gray-600 p-2 dark:text-gray-200">{s.department}</td>
+                  <td className="border dark:border-gray-600 p-2 dark:text-gray-200">{s.academic_year}</td>
                   {isAdmin && (
                     <td className="border p-2">
                       <div className="flex gap-2 justify-center">

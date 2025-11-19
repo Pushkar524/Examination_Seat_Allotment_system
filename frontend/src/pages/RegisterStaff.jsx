@@ -182,21 +182,21 @@ export default function RegisterStaff(){
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-gray-100">
-                <th className="border p-2">Invigilator ID</th>
-                <th className="border p-2">Name</th>
+              <tr className="bg-gray-100 dark:bg-gray-700">
+                <th className="border dark:border-gray-600 p-2 dark:text-white">Invigilator ID</th>
+                <th className="border dark:border-gray-600 p-2 dark:text-white">Name</th>
                 {isAdmin && (
-                  <th className="border p-2">Actions</th>
+                  <th className="border dark:border-gray-600 p-2 dark:text-white">Actions</th>
                 )}
               </tr>
             </thead>
             <tbody>
               {invigilators.map(inv=> (
-                <tr key={inv.id} className="h-12 hover:bg-gray-50">
-                  <td className="border p-2">{inv.invigilator_id}</td>
-                  <td className="border p-2">{inv.name}</td>
+                <tr key={inv.id} className="h-12 hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <td className="border dark:border-gray-600 p-2 dark:text-gray-200">{inv.invigilator_id}</td>
+                  <td className="border dark:border-gray-600 p-2 dark:text-gray-200">{inv.name}</td>
                   {isAdmin && (
-                    <td className="border p-2">
+                    <td className="border dark:border-gray-600 p-2">
                       <div className="flex gap-2 justify-center">
                         <button 
                           onClick={() => openEditModal(inv)}
@@ -216,7 +216,7 @@ export default function RegisterStaff(){
                 </tr>
               ))}
               {invigilators.length===0 && !loading && (
-                <tr className="h-12"><td className="p-4 text-center text-gray-500" colSpan={isAdmin ? 3 : 2}>No invigilators yet. Upload a file to add invigilators.</td></tr>
+                <tr className="h-12"><td className="p-4 text-center text-gray-500 dark:text-gray-400" colSpan={isAdmin ? 3 : 2}>No invigilators yet. Upload a file to add invigilators.</td></tr>
               )}
             </tbody>
           </table>
