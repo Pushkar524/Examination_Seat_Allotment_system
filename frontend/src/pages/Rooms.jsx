@@ -192,11 +192,11 @@ export default function Rooms(){
           <table className="w-full border-collapse">
             <thead>
               <tr className="bg-gray-100 dark:bg-gray-700">
-                <th className="border dark:border-gray-600 p-3 dark:text-white">ROOM NO</th>
-                <th className="border dark:border-gray-600 p-3 dark:text-white">FLOOR</th>
-                <th className="border dark:border-gray-600 p-3 dark:text-white">CAPACITY</th>
+                <th className="border dark:border-gray-600 p-3 text-left dark:text-white">ROOM NO</th>
+                <th className="border dark:border-gray-600 p-3 text-left dark:text-white">FLOOR</th>
+                <th className="border dark:border-gray-600 p-3 text-left dark:text-white">CAPACITY</th>
                 {isAdmin && (
-                  <th className="border dark:border-gray-600 p-3 dark:text-white">ACTIONS</th>
+                  <th className="border dark:border-gray-600 p-3 text-left dark:text-white">ACTIONS</th>
                 )}
               </tr>
             </thead>
