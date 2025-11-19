@@ -6,7 +6,7 @@ export default function Header(){
   
   return (
     <header className="flex items-center justify-between">
-      <h1 className="text-2xl font-semibold dark:text-white">EXAM ALLOTMENT SYSTEM</h1>
+      <h1 className="text-2xl font-semibold dark:text-white">EXAMINATION SEAT ALLOTMENT</h1>
       <button
         onClick={toggleTheme}
         className="w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-br from-yellow-400 to-orange-500 dark:from-indigo-600 dark:to-purple-700 hover:scale-110 transition-all duration-200 shadow-lg"
