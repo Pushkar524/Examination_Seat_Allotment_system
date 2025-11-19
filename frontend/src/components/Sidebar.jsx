@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import Modal from './Modal'
 
 const MenuItem = ({to, children}) => (
-  <NavLink to={to} className={({isActive}) => `block px-6 py-3 my-2 rounded text-sm ${isActive ? 'bg-cyan-200' : 'bg-gray-200'}`}>
+  <NavLink to={to} className={({isActive}) => `block px-6 py-3 my-2 rounded text-sm transition-colors ${isActive ? 'bg-cyan-200 dark:bg-cyan-700 dark:text-white' : 'bg-gray-200 dark:bg-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600'}`}>
     {children}
   </NavLink>
 )
@@ -40,9 +40,9 @@ export default function Sidebar(){
   }
 
   return (
-    <aside className="w-64 bg-cyan-100 min-h-screen p-6 flex flex-col">
+    <aside className="w-64 bg-cyan-100 dark:bg-gray-800 min-h-screen p-6 flex flex-col transition-colors duration-200">
       <div>
-        <div className="text-2xl font-semibold mb-8">SEAT ALLOTMENT</div>
+        <div className="text-2xl font-semibold mb-8 dark:text-white">SEAT ALLOTMENT</div>
         <div>
           <MenuItem to="/dashboard">DASHBOARD</MenuItem>
           {(isAdmin || role === 'admin') && (
@@ -61,7 +61,7 @@ export default function Sidebar(){
         {role && (
           <div 
             onClick={isAdmin ? openProfileModal : undefined}
-            className={`flex items-center gap-3 mb-4 p-3 rounded-lg ${isAdmin ? 'cursor-pointer hover:bg-cyan-200 transition-colors' : ''}`}
+            className={`flex items-center gap-3 mb-4 p-3 rounded-lg dark:text-white ${isAdmin ? 'cursor-pointer hover:bg-cyan-200 dark:hover:bg-gray-700 transition-colors' : ''}`}
           >
             <div className="relative">
               {profilePic ? (
@@ -74,17 +74,17 @@ export default function Sidebar(){
             </div>
             <div className="flex-1">
               <div className="text-sm font-semibold">{role.toUpperCase()}</div>
-              {isAdmin && <div className="text-xs text-gray-600">Admin: full edit access</div>}
+              {isAdmin && <div className="text-xs text-gray-600 dark:text-gray-400">Admin: full edit access</div>}
             </div>
             {isAdmin && (
-              <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             )}
           </div>
         )}
 
-        <button onClick={logout} className="w-full bg-violet-200 px-4 py-2 rounded hover:bg-violet-300 transition-colors">LOGOUT</button>
+        <button onClick={logout} className="w-full bg-violet-200 dark:bg-violet-700 px-4 py-2 rounded hover:bg-violet-300 dark:hover:bg-violet-600 transition-colors dark:text-white">LOGOUT</button>
 
         {/* Admin Profile Modal */}
         <Modal open={profileModalOpen} title="Admin Profile Settings" onClose={()=>setProfileModalOpen(false)}>

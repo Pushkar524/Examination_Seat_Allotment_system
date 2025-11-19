@@ -160,13 +160,13 @@ export default function Rooms(){
 
   return (
     <div>
-      <h2 className="text-2xl font-semibold mb-6">ROOM MANAGEMENT</h2>
+      <h2 className="text-2xl font-semibold mb-6 dark:text-white">ROOM MANAGEMENT</h2>
 
-      <div className="bg-white border p-4 mb-6 shadow rounded">
+      <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 p-4 mb-6 shadow rounded">
         <div className="flex justify-between items-center mb-4">
           <div>
-            <h3 className="font-medium">Examination Rooms ({rooms.length})</h3>
-            <p className="text-sm text-gray-600">Total Capacity: {totalCapacity} seats</p>
+            <h3 className="font-medium dark:text-white">Examination Rooms ({rooms.length})</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Total Capacity: {totalCapacity} seats</p>
           </div>
           {isAdmin && (
             <div className="flex gap-2">
@@ -195,7 +195,7 @@ export default function Rooms(){
                 <th className="border p-3">ROOM NO</th>
                 <th className="border p-3">FLOOR</th>
                 <th className="border p-3">CAPACITY</th>
-                {user?.role === 'admin' && (
+                {isAdmin && (
                   <th className="border p-3">ACTIONS</th>
                 )}
               </tr>
@@ -206,7 +206,7 @@ export default function Rooms(){
                   <td className="border p-2 font-medium">{r.room_no}</td>
                   <td className="border p-2">{r.floor}</td>
                   <td className="border p-2">{r.capacity}</td>
-                  {user?.role === 'admin' && (
+                  {isAdmin && (
                     <td className="border p-2">
                       <div className="flex gap-2 justify-center">
                         <button 
@@ -227,7 +227,7 @@ export default function Rooms(){
                 </tr>
               ))}
               {rooms.length===0 && !loading && (
-                <tr className="h-12"><td className="p-4 text-center text-gray-500" colSpan={user?.role === 'admin' ? 4 : 3}>No rooms yet. Upload a file to add rooms.</td></tr>
+                <tr className="h-12"><td className="p-4 text-center text-gray-500" colSpan={isAdmin ? 4 : 3}>No rooms yet. Upload a file to add rooms.</td></tr>
               )}
             </tbody>
           </table>

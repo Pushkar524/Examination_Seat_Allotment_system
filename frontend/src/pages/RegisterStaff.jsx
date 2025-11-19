@@ -154,11 +154,11 @@ export default function RegisterStaff(){
 
   return (
     <div>
-      <h2 className="text-2xl font-semibold mb-4">REGISTER INVIGILATORS</h2>
+      <h2 className="text-2xl font-semibold mb-4 dark:text-white">REGISTER INVIGILATORS</h2>
 
-      <div className="bg-white p-4 mb-6 shadow rounded">
+      <div className="bg-white dark:bg-gray-800 p-4 mb-6 shadow rounded">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-medium">Invigilators List ({invigilators.length})</h3>
+          <h3 className="font-medium dark:text-white">Invigilators List ({invigilators.length})</h3>
           {isAdmin && (
             <div className="flex gap-2">
               <button 

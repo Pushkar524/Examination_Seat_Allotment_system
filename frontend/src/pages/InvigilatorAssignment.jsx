@@ -68,21 +68,21 @@ export default function InvigilatorAssignment(){
   return (
     <div className="max-w-7xl mx-auto p-6">
       <div className="mb-6">
-        <h1 className="text-4xl font-bold text-gray-800 mb-2">👨‍🏫 Invigilator Assignment</h1>
-        <p className="text-gray-600">Assign invigilators to examination rooms</p>
+        <h1 className="text-4xl font-bold text-gray-800 dark:text-white mb-2">👨‍🏫 Invigilator Assignment</h1>
+        <p className="text-gray-600 dark:text-gray-300">Assign invigilators to examination rooms</p>
       </div>
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-4 rounded-lg shadow-lg">
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 text-white p-4 rounded-lg shadow-lg">
           <div className="text-3xl font-bold">{invigilators.length}</div>
           <div className="text-sm opacity-90">Total Invigilators</div>
         </div>
-        <div className="bg-gradient-to-br from-green-500 to-green-600 text-white p-4 rounded-lg shadow-lg">
+        <div className="bg-gradient-to-br from-green-500 to-green-600 dark:from-green-600 dark:to-green-700 text-white p-4 rounded-lg shadow-lg">
           <div className="text-3xl font-bold">{assignedCount}</div>
           <div className="text-sm opacity-90">Assigned</div>
         </div>
-        <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white p-4 rounded-lg shadow-lg">
+        <div className="bg-gradient-to-br from-orange-500 to-orange-600 dark:from-orange-600 dark:to-orange-700 text-white p-4 rounded-lg shadow-lg">
           <div className="text-3xl font-bold">{unassignedCount}</div>
           <div className="text-sm opacity-90">Unassigned</div>
         </div>
@@ -95,7 +95,7 @@ export default function InvigilatorAssignment(){
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           placeholder="🔍 Search by name, ID, or room..."
-          className="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-blue-500 focus:outline-none"
+          className="w-full border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2 focus:border-blue-500 focus:outline-none"
         />
       </div>
 

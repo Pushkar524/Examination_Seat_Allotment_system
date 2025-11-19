@@ -51,8 +51,8 @@ export default function Dashboard(){
   if (isAdmin || role === 'admin') {
     return (
       <div>
-        <h2 className="text-3xl font-bold mb-2 text-gray-800">Dashboard</h2>
-        <p className="text-gray-600 mb-8">Welcome to Examination Seat Allotment System</p>
+        <h2 className="text-3xl font-bold mb-2 text-gray-800 dark:text-white">Dashboard</h2>
+        <p className="text-gray-600 dark:text-gray-300 mb-8">Welcome to Examination Seat Allotment System</p>
 
         {loading ? (
           <div className="text-center py-12">
@@ -69,8 +69,8 @@ export default function Dashboard(){
                     TOTAL
                   </div>
                 </div>
-                <div className="text-3xl font-bold text-gray-800 mb-1">{statistics.totalStudents}</div>
-                <div className="text-sm text-gray-600 font-medium">Registered Students</div>
+                <div className="text-3xl font-bold text-gray-800 dark:text-gray-900 mb-1">{statistics.totalStudents}</div>
+                <div className="text-sm text-gray-600 dark:text-gray-700 font-medium">Registered Students</div>
               </div>
 
               <div className="bg-gradient-to-br from-rose-50 to-pink-100 border border-rose-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
@@ -80,8 +80,8 @@ export default function Dashboard(){
                     AVAILABLE
                   </div>
                 </div>
-                <div className="text-3xl font-bold text-gray-800 mb-1">{statistics.totalRooms}</div>
-                <div className="text-sm text-gray-600 font-medium">Examination Rooms</div>
+                <div className="text-3xl font-bold text-gray-800 dark:text-gray-900 mb-1">{statistics.totalRooms}</div>
+                <div className="text-sm text-gray-600 dark:text-gray-700 font-medium">Examination Rooms</div>
               </div>
 
               <div className="bg-gradient-to-br from-purple-50 to-indigo-100 border border-purple-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
@@ -91,8 +91,8 @@ export default function Dashboard(){
                     CAPACITY
                   </div>
                 </div>
-                <div className="text-3xl font-bold text-gray-800 mb-1">{statistics.totalCapacity}</div>
-                <div className="text-sm text-gray-600 font-medium">Total Seat Capacity</div>
+                <div className="text-3xl font-bold text-gray-800 dark:text-gray-900 mb-1">{statistics.totalCapacity}</div>
+                <div className="text-sm text-gray-600 dark:text-gray-700 font-medium">Total Seat Capacity</div>
               </div>
 
               <div className="bg-gradient-to-br from-green-50 to-emerald-100 border border-green-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
@@ -102,8 +102,8 @@ export default function Dashboard(){
                     ALLOTTED
                   </div>
                 </div>
-                <div className="text-3xl font-bold text-gray-800 mb-1">{statistics.allottedSeats}</div>
-                <div className="text-sm text-gray-600 font-medium">Seats Allotted</div>
+                <div className="text-3xl font-bold text-gray-800 dark:text-gray-900 mb-1">{statistics.allottedSeats}</div>
+                <div className="text-sm text-gray-600 dark:text-gray-700 font-medium">Seats Allotted</div>
               </div>
             </div>
 
@@ -125,8 +125,8 @@ export default function Dashboard(){
                   className="bg-white border-2 border-rose-200 hover:border-rose-400 rounded-xl p-6 text-left transition-all hover:shadow-lg group"
                 >
                   <div className="text-rose-600 text-3xl mb-3 group-hover:scale-110 transition-transform">🏛️</div>
-                  <div className="font-semibold text-gray-800 mb-1">Manage Rooms</div>
-                  <div className="text-sm text-gray-600">Configure examination rooms</div>
+                  <div className="font-semibold text-gray-800 dark:text-white mb-1">Manage Rooms</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-300">Configure examination rooms</div>
                 </button>
 
                 <button
@@ -134,8 +134,8 @@ export default function Dashboard(){
                   className="bg-white border-2 border-purple-200 hover:border-purple-400 rounded-xl p-6 text-left transition-all hover:shadow-lg group"
                 >
                   <div className="text-purple-600 text-3xl mb-3 group-hover:scale-110 transition-transform">👨‍🏫</div>
-                  <div className="font-semibold text-gray-800 mb-1">Invigilators</div>
-                  <div className="text-sm text-gray-600">Manage invigilator list</div>
+                  <div className="font-semibold text-gray-800 dark:text-white mb-1">Invigilators</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-300">Manage invigilator assignments</div>
                 </button>
 
                 <button
@@ -263,85 +263,85 @@ export default function Dashboard(){
       <h2 className="text-3xl font-bold mb-6 text-gray-800">Student Dashboard</h2>
       
       {seatLoading ? (
-        <div className="bg-white border border-gray-200 rounded-xl p-12 text-center">
-          <div className="text-gray-500 text-lg">Loading your seat information...</div>
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-12 text-center">
+          <div className="text-gray-500 dark:text-gray-400 text-lg">Loading your seat information...</div>
         </div>
       ) : seatError ? (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-12 text-center">
+        <div className="bg-yellow-50 dark:bg-yellow-900 border border-yellow-200 dark:border-yellow-700 rounded-xl p-12 text-center">
           <div className="text-6xl mb-4">📋</div>
-          <div className="text-xl font-semibold text-gray-800 mb-2">No Seat Allotted Yet</div>
-          <div className="text-gray-600">Your exam seat will be assigned by the administrator.</div>
-          <div className="text-sm text-gray-500 mt-4">Please check back later or contact administration.</div>
+          <div className="text-xl font-semibold text-gray-800 dark:text-white mb-2">No Seat Allotted Yet</div>
+          <div className="text-gray-600 dark:text-gray-300">Your exam seat will be assigned by the administrator.</div>
+          <div className="text-sm text-gray-500 dark:text-gray-400 mt-4">Please check back later or contact administration.</div>
         </div>
       ) : (
         <div className="space-y-6">
           {/* Welcome Card */}
-          <div className="bg-gradient-to-br from-green-50 to-emerald-100 border-2 border-green-200 rounded-xl p-8">
+          <div className="bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-900 dark:to-emerald-900 border-2 border-green-200 dark:border-green-700 rounded-xl p-8">
             <div className="flex items-center gap-4 mb-4">
               <div className="text-6xl">✅</div>
               <div>
-                <div className="text-2xl font-bold text-gray-800">Seat Allotted!</div>
-                <div className="text-gray-600">Your examination seat has been assigned</div>
+                <div className="text-2xl font-bold text-gray-800 dark:text-white">Seat Allotted!</div>
+                <div className="text-gray-600 dark:text-gray-300">Your examination seat has been assigned</div>
               </div>
             </div>
           </div>
 
           {/* Student Information */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm">
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
               <span>👤</span> Student Information
             </h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <div className="text-sm text-gray-500">Name</div>
-                <div className="text-lg font-semibold text-gray-800">{seatInfo.student_name}</div>
+                <div className="text-sm text-gray-500 dark:text-gray-400">Name</div>
+                <div className="text-lg font-semibold text-gray-800 dark:text-white">{seatInfo.student_name}</div>
               </div>
               <div>
-                <div className="text-sm text-gray-500">Roll Number</div>
-                <div className="text-lg font-semibold text-gray-800 font-mono">{seatInfo.roll_no}</div>
+                <div className="text-sm text-gray-500 dark:text-gray-400">Roll Number</div>
+                <div className="text-lg font-semibold text-gray-800 dark:text-white font-mono">{seatInfo.roll_no}</div>
               </div>
               <div>
-                <div className="text-sm text-gray-500">Department</div>
-                <div className="text-lg font-semibold text-gray-800">{seatInfo.department}</div>
+                <div className="text-sm text-gray-500 dark:text-gray-400">Department</div>
+                <div className="text-lg font-semibold text-gray-800 dark:text-white">{seatInfo.department}</div>
               </div>
               <div>
-                <div className="text-sm text-gray-500">Academic Year</div>
-                <div className="text-lg font-semibold text-gray-800">{seatInfo.academic_year}</div>
+                <div className="text-sm text-gray-500 dark:text-gray-400">Academic Year</div>
+                <div className="text-lg font-semibold text-gray-800 dark:text-white">{seatInfo.academic_year}</div>
               </div>
             </div>
           </div>
 
           {/* Seat Allotment Details */}
-          <div className="bg-gradient-to-br from-blue-50 to-cyan-100 border-2 border-blue-200 rounded-xl p-6 shadow-lg">
-            <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+          <div className="bg-gradient-to-br from-blue-50 to-cyan-100 dark:from-blue-900 dark:to-cyan-900 border-2 border-blue-200 dark:border-blue-700 rounded-xl p-6 shadow-lg">
+            <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2">
               <span>🎯</span> Examination Seat Details
             </h3>
             <div className="grid grid-cols-3 gap-6">
-              <div className="bg-white rounded-lg p-4 text-center shadow-sm">
-                <div className="text-blue-600 text-4xl mb-2">🏢</div>
-                <div className="text-sm text-gray-500 mb-1">Room Number</div>
-                <div className="text-2xl font-bold text-gray-800">{seatInfo.room_no}</div>
+              <div className="bg-white dark:bg-gray-700 rounded-lg p-4 text-center shadow-sm">
+                <div className="text-blue-600 dark:text-blue-400 text-4xl mb-2">🏢</div>
+                <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Room Number</div>
+                <div className="text-2xl font-bold text-gray-800 dark:text-white">{seatInfo.room_no}</div>
               </div>
-              <div className="bg-white rounded-lg p-4 text-center shadow-sm">
-                <div className="text-purple-600 text-4xl mb-2">📍</div>
-                <div className="text-sm text-gray-500 mb-1">Floor</div>
-                <div className="text-2xl font-bold text-gray-800">{seatInfo.floor}</div>
+              <div className="bg-white dark:bg-gray-700 rounded-lg p-4 text-center shadow-sm">
+                <div className="text-purple-600 dark:text-purple-400 text-4xl mb-2">📍</div>
+                <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Floor</div>
+                <div className="text-2xl font-bold text-gray-800 dark:text-white">{seatInfo.floor}</div>
               </div>
-              <div className="bg-white rounded-lg p-4 text-center shadow-sm">
-                <div className="text-green-600 text-4xl mb-2">💺</div>
-                <div className="text-sm text-gray-500 mb-1">Seat Number</div>
-                <div className="text-2xl font-bold text-gray-800">{seatInfo.seat_number}</div>
+              <div className="bg-white dark:bg-gray-700 rounded-lg p-4 text-center shadow-sm">
+                <div className="text-green-600 dark:text-green-400 text-4xl mb-2">💺</div>
+                <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Seat Number</div>
+                <div className="text-2xl font-bold text-gray-800 dark:text-white">{seatInfo.seat_number}</div>
               </div>
             </div>
           </div>
 
           {/* Important Instructions */}
-          <div className="bg-amber-50 border-l-4 border-amber-400 rounded-lg p-6">
+          <div className="bg-amber-50 dark:bg-amber-900 border-l-4 border-amber-400 dark:border-amber-600 rounded-lg p-6">
             <div className="flex items-start gap-3">
-              <div className="text-amber-600 text-2xl">⚠️</div>
+              <div className="text-amber-600 dark:text-amber-400 text-2xl">⚠️</div>
               <div>
-                <div className="font-semibold text-gray-800 mb-2">Important Instructions</div>
-                <ul className="text-sm text-gray-700 space-y-1 list-disc list-inside">
+                <div className="font-semibold text-gray-800 dark:text-white mb-2">Important Instructions</div>
+                <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 list-disc list-inside">
                   <li>Please arrive at least 30 minutes before the examination</li>
                   <li>Bring your student ID card and hall ticket</li>
                   <li>Report to Room {seatInfo.room_no} on Floor {seatInfo.floor}</li>

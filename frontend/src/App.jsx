@@ -12,7 +12,7 @@ import InvigilatorAssignment from './pages/InvigilatorAssignment'
 
 export default function App(){
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-200">
       <Routes>
         <Route path="/login" element={<Login/>} />
         <Route path="/*" element={<ProtectedApp/>} />
@@ -25,7 +25,7 @@ function ProtectedApp(){
   return (
     <div className="flex">
       <Sidebar />
-      <div className="flex-1 p-8">
+      <div className="flex-1 p-8 dark:text-gray-100">
         <Header />
         <div className="mt-6">
           <Routes>

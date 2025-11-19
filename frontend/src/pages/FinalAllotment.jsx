@@ -296,28 +296,28 @@ export default function FinalAllotment(){
       <h2 className="text-2xl font-semibold mb-6">FINAL SEAT ALLOTMENT</h2>
       
       <div className="grid grid-cols-4 gap-6 mb-6">
-        <div className="card bg-gradient-to-br from-cyan-50 to-blue-100">
-          <div className="text-sm text-gray-600 mb-2 font-medium">TOTAL STUDENTS</div>
-          <div className="text-3xl font-bold text-gray-800">{statistics.total_students || 0}</div>
+        <div className="card bg-gradient-to-br from-cyan-50 to-blue-100 dark:from-cyan-900 dark:to-blue-900">
+          <div className="text-sm text-gray-700 dark:text-gray-200 mb-2 font-medium">TOTAL STUDENTS</div>
+          <div className="text-3xl font-bold text-gray-800 dark:text-white">{statistics.total_students || 0}</div>
         </div>
         
-        <div className="card bg-gradient-to-br from-green-50 to-emerald-100">
-          <div className="text-sm text-gray-600 mb-2 font-medium">STUDENTS ALLOTTED</div>
-          <div className="text-3xl font-bold text-green-600">{statistics.allotted_students || 0}</div>
+        <div className="card bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-900 dark:to-emerald-900">
+          <div className="text-sm text-gray-700 dark:text-gray-200 mb-2 font-medium">STUDENTS ALLOTTED</div>
+          <div className="text-3xl font-bold text-green-600 dark:text-green-300">{statistics.allotted_students || 0}</div>
         </div>
 
-        <div className="card bg-gradient-to-br from-purple-50 to-indigo-100">
-          <div className="text-sm text-gray-600 mb-2 font-medium">ROOMS USED</div>
-          <div className="text-3xl font-bold text-purple-600">{statistics.rooms_used || 0}</div>
+        <div className="card bg-gradient-to-br from-purple-50 to-indigo-100 dark:from-purple-900 dark:to-indigo-900">
+          <div className="text-sm text-gray-700 dark:text-gray-200 mb-2 font-medium">ROOMS USED</div>
+          <div className="text-3xl font-bold text-purple-600 dark:text-purple-300">{statistics.rooms_used || 0}</div>
         </div>
 
-        <div className="card bg-gradient-to-br from-rose-50 to-pink-100">
-          <div className="text-sm text-gray-600 mb-2 font-medium">TOTAL CAPACITY</div>
-          <div className="text-3xl font-bold text-rose-600">{statistics.total_capacity || 0}</div>
+        <div className="card bg-gradient-to-br from-rose-50 to-pink-100 dark:from-rose-900 dark:to-pink-900">
+          <div className="text-sm text-gray-700 dark:text-gray-200 mb-2 font-medium">TOTAL CAPACITY</div>
+          <div className="text-3xl font-bold text-rose-600 dark:text-rose-300">{statistics.total_capacity || 0}</div>
         </div>
       </div>
 
-      <div className="bg-gradient-to-r from-gray-100 to-gray-200 p-4 mb-4 rounded-lg shadow-sm">
+      <div className="bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 p-4 mb-4 rounded-lg shadow-sm">
         <div className="grid grid-cols-3 gap-4 mb-3">
           <input 
             value={searchTerm} 
@@ -359,7 +359,7 @@ export default function FinalAllotment(){
                   onChange={(e) => e.target.value && handleExportRoomPDF(roomMapping[e.target.value])}
                   value=""
                   disabled={uniqueRooms.length === 0 || loading}
-                  className="border-2 border-purple-500 rounded-lg px-3 py-2 disabled:bg-gray-100 disabled:border-gray-300"
+                  className="border-2 border-purple-500 dark:border-purple-400 rounded-lg px-3 py-2 disabled:bg-gray-100 disabled:border-gray-300 dark:bg-gray-700 dark:text-white"
                   title="Export room-wise allotment to PDF"
                 >
                   <option value="">🏢 Export by Room</option>
@@ -387,29 +387,29 @@ export default function FinalAllotment(){
         )}
       </div>
 
-      <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-sm overflow-hidden">
         <table className="w-full border-collapse">
           <thead>
-            <tr className="bg-gradient-to-r from-gray-100 to-gray-200">
-              <th className="border p-3 text-left font-semibold">Roll No</th>
-              <th className="border p-3 text-left font-semibold">Student Name</th>
-              <th className="border p-3 text-left font-semibold">Department</th>
-              <th className="border p-3 text-left font-semibold">Room No</th>
-              <th className="border p-3 text-left font-semibold">Floor</th>
-              <th className="border p-3 text-left font-semibold">Seat No</th>
-              {isAdmin && <th className="border p-3 text-center font-semibold">Actions</th>}
+            <tr className="bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600">
+              <th className="border dark:border-gray-600 p-3 text-left font-semibold dark:text-white">Roll No</th>
+              <th className="border dark:border-gray-600 p-3 text-left font-semibold dark:text-white">Student Name</th>
+              <th className="border dark:border-gray-600 p-3 text-left font-semibold dark:text-white">Department</th>
+              <th className="border dark:border-gray-600 p-3 text-left font-semibold dark:text-white">Room No</th>
+              <th className="border dark:border-gray-600 p-3 text-left font-semibold dark:text-white">Floor</th>
+              <th className="border dark:border-gray-600 p-3 text-left font-semibold dark:text-white">Seat No</th>
+              {isAdmin && <th className="border dark:border-gray-600 p-3 text-center font-semibold dark:text-white">Actions</th>}
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr className="h-32">
-                <td className="border p-4 text-center text-gray-500" colSpan={isAdmin ? 7 : 6}>
+                <td className="border dark:border-gray-600 p-4 text-center text-gray-500 dark:text-gray-400" colSpan={isAdmin ? 7 : 6}>
                   <div className="text-lg">Loading allotments...</div>
                 </td>
               </tr>
             ) : filteredAllotments.length === 0 ? (
               <tr className="h-32">
-                <td className="border p-4 text-center text-gray-500" colSpan={isAdmin ? 7 : 6}>
+                <td className="border dark:border-gray-600 p-4 text-center text-gray-500 dark:text-gray-400" colSpan={isAdmin ? 7 : 6}>
                   {allotments.length === 0 ? (
                     <div>
                       <div className="text-5xl mb-3">📋</div>
@@ -423,23 +423,23 @@ export default function FinalAllotment(){
               </tr>
             ) : (
               filteredAllotments.map(a => (
-                <tr key={a.id} className="h-12 hover:bg-blue-50 transition-colors">
-                  <td className="border p-2 font-mono">{a.roll_no}</td>
-                  <td className="border p-2 font-medium">{a.student_name}</td>
-                  <td className="border p-2">{a.department}</td>
-                  <td className="border p-2">
-                    <span className="bg-cyan-100 px-2 py-1 rounded text-cyan-800 font-semibold">
+                <tr key={a.id} className="h-12 hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors">
+                  <td className="border dark:border-gray-600 p-2 font-mono dark:text-gray-200">{a.roll_no}</td>
+                  <td className="border dark:border-gray-600 p-2 font-medium dark:text-gray-200">{a.student_name}</td>
+                  <td className="border dark:border-gray-600 p-2 dark:text-gray-200">{a.department}</td>
+                  <td className="border dark:border-gray-600 p-2">
+                    <span className="bg-cyan-100 dark:bg-cyan-900 px-2 py-1 rounded text-cyan-800 dark:text-cyan-200 font-semibold">
                       {a.room_no}
                     </span>
                   </td>
-                  <td className="border p-2">{a.floor}</td>
-                  <td className="border p-2">
-                    <span className="bg-purple-100 px-2 py-1 rounded text-purple-800 font-semibold">
+                  <td className="border dark:border-gray-600 p-2 dark:text-gray-200">{a.floor}</td>
+                  <td className="border dark:border-gray-600 p-2">
+                    <span className="bg-purple-100 dark:bg-purple-900 px-2 py-1 rounded text-purple-800 dark:text-purple-200 font-semibold">
                       {a.seat_number}
                     </span>
                   </td>
                   {isAdmin && (
-                    <td className="border p-2">
+                    <td className="border dark:border-gray-600 p-2">
                       <div className="flex gap-2 justify-center">
                         <button 
                           onClick={()=>openEditModal(a)} 
@@ -531,47 +531,47 @@ export default function FinalAllotment(){
                 ))}
               </div>
             )}
-            <div className="mt-3 text-sm text-gray-600 bg-blue-50 p-3 rounded">
+            <div className="mt-3 text-sm text-gray-600 dark:text-gray-300 bg-blue-50 dark:bg-blue-900 p-3 rounded">
               💡 <strong>Tip:</strong> Select specific rooms to allocate seats only in those rooms, or leave unselected to use all rooms.
             </div>
           </div>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
             <div className="grid grid-cols-2 gap-4 text-center">
               <div>
-                <div className="text-3xl font-bold text-blue-600">{students.length}</div>
-                <div className="text-sm text-gray-600 mt-1">Total Students</div>
+                <div className="text-3xl font-bold text-blue-600 dark:text-blue-300">{students.length}</div>
+                <div className="text-sm text-gray-600 dark:text-gray-300 mt-1">Total Students</div>
               </div>
               <div>
-                <div className="text-3xl font-bold text-purple-600">
+                <div className="text-3xl font-bold text-purple-600 dark:text-purple-300">
                   {selectedRoomIds.length > 0 ? selectedRoomIds.length : rooms.length}
                 </div>
-                <div className="text-sm text-gray-600 mt-1">
+                <div className="text-sm text-gray-600 dark:text-gray-300 mt-1">
                   {selectedRoomIds.length > 0 ? 'Selected Rooms' : 'Available Rooms'}
                 </div>
               </div>
               <div>
-                <div className="text-3xl font-bold text-green-600">
+                <div className="text-3xl font-bold text-green-600 dark:text-green-300">
                   {selectedRoomIds.length > 0 
                     ? rooms.filter(r => selectedRoomIds.includes(r.id)).reduce((sum, r) => sum + parseInt(r.capacity || 0), 0)
                     : rooms.reduce((sum, r) => sum + parseInt(r.capacity || 0), 0)
                   }
                 </div>
-                <div className="text-sm text-gray-600 mt-1">Total Capacity</div>
+                <div className="text-sm text-gray-600 dark:text-gray-300 mt-1">Total Capacity</div>
               </div>
               <div>
                 <div className={`text-3xl font-bold ${
                   students.length <= (selectedRoomIds.length > 0 
                     ? rooms.filter(r => selectedRoomIds.includes(r.id)).reduce((sum, r) => sum + parseInt(r.capacity || 0), 0)
                     : rooms.reduce((sum, r) => sum + parseInt(r.capacity || 0), 0))
-                    ? 'text-green-600'
-                    : 'text-rose-600'
+                    ? 'text-green-600 dark:text-green-300'
+                    : 'text-rose-600 dark:text-rose-300'
                 }`}>
                   {students.length <= (selectedRoomIds.length > 0 
                     ? rooms.filter(r => selectedRoomIds.includes(r.id)).reduce((sum, r) => sum + parseInt(r.capacity || 0), 0)
                     : rooms.reduce((sum, r) => sum + parseInt(r.capacity || 0), 0)) ? 'Sufficient' : 'Exceeded'}
                 </div>
-                <div className="text-sm text-gray-600 mt-1">Capacity Status</div>
+                <div className="text-sm text-gray-600 dark:text-gray-300 mt-1">Capacity Status</div>
               </div>
             </div>
           </div>
