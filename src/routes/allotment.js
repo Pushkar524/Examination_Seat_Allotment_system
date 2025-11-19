@@ -9,6 +9,7 @@ router.post('/allot', authMiddleware(['admin']), async (req, res) => {
   const client = await pool.connect();
   
   try {
+    const { room_ids } = req.body;
     await client.query('BEGIN');
 
     // Clear existing allotments
@@ -24,10 +25,18 @@ router.post('/allot', authMiddleware(['admin']), async (req, res) => {
       return res.status(400).json({ error: 'No students found to allot seats' });
     }
 
-    // Get all rooms ordered by room number
-    const roomsResult = await client.query(
-      'SELECT id, room_no, capacity FROM rooms ORDER BY room_no'
-    );
+    // Get rooms - either selected rooms or all rooms
+    let roomsQuery = 'SELECT id, room_no, capacity FROM rooms';
+    let roomsParams = [];
+    
+    if (room_ids && room_ids.length > 0) {
+      roomsQuery += ' WHERE id = ANY($1::int[])';
+      roomsParams = [room_ids];
+    }
+    
+    roomsQuery += ' ORDER BY room_no';
+
+    const roomsResult = await client.query(roomsQuery, roomsParams);
     const rooms = roomsResult.rows;
 
     if (rooms.length === 0) {
@@ -74,7 +83,7 @@ router.post('/allot', authMiddleware(['admin']), async (req, res) => {
       message: 'Seat allotment completed successfully',
       totalStudents: students.length,
       allottedSeats: allottedCount,
-      roomsUsed: Math.ceil(allottedCount / (totalCapacity / rooms.length))
+      roomsUsed: rooms.length
     });
 
   } catch (error) {
@@ -83,6 +92,76 @@ router.post('/allot', authMiddleware(['admin']), async (req, res) => {
     res.status(500).json({ error: 'Failed to allot seats' });
   } finally {
     client.release();
+  }
+});
+
+// Create manual seat allotment
+router.post('/allotments', authMiddleware(['admin']), async (req, res) => {
+  try {
+    const { student_id, room_id, seat_number } = req.body;
+
+    if (!student_id || !room_id || !seat_number) {
+      return res.status(400).json({ error: 'Student ID, room ID, and seat number are required' });
+    }
+
+    // Check if student exists
+    const studentCheck = await pool.query('SELECT id FROM students WHERE id = $1', [student_id]);
+    if (studentCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    // Check if student already has an allotment
+    const existingAllotment = await pool.query(
+      'SELECT * FROM seat_allotments WHERE student_id = $1',
+      [student_id]
+    );
+
+    if (existingAllotment.rows.length > 0) {
+      return res.status(400).json({ error: 'Student already has a seat allotment. Please delete the existing one first.' });
+    }
+
+    // Check if the seat is already occupied
+    const seatCheck = await pool.query(
+      'SELECT * FROM seat_allotments WHERE room_id = $1 AND seat_number = $2',
+      [room_id, seat_number]
+    );
+
+    if (seatCheck.rows.length > 0) {
+      return res.status(400).json({ error: 'This seat is already occupied' });
+    }
+
+    // Check if seat number exceeds room capacity
+    const roomResult = await pool.query(
+      'SELECT capacity FROM rooms WHERE id = $1',
+      [room_id]
+    );
+
+    if (roomResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Room not found' });
+    }
+
+    if (parseInt(seat_number) > parseInt(roomResult.rows[0].capacity)) {
+      return res.status(400).json({ 
+        error: `Seat number exceeds room capacity (${roomResult.rows[0].capacity})` 
+      });
+    }
+
+    // Insert allotment
+    const result = await pool.query(
+      `INSERT INTO seat_allotments (student_id, room_id, seat_number)
+       VALUES ($1, $2, $3)
+       RETURNING *`,
+      [student_id, room_id, seat_number]
+    );
+
+    res.json({
+      message: 'Seat allotted successfully',
+      allotment: result.rows[0]
+    });
+
+  } catch (error) {
+    console.error('Manual allotment error:', error);
+    res.status(500).json({ error: 'Failed to create seat allotment' });
   }
 });
 

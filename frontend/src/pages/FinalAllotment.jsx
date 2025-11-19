@@ -26,8 +26,24 @@ export default function FinalAllotment(){
 
   // Modal state
   const [autoAllotModalOpen, setAutoAllotModalOpen] = useState(false)
+  const [manualAllotModalOpen, setManualAllotModalOpen] = useState(false)
+  const [editModalOpen, setEditModalOpen] = useState(false)
   const [selectedRoomIds, setSelectedRoomIds] = useState([])
   const [deleteId, setDeleteId] = useState(null)
+  
+  // Manual allotment form
+  const [manualForm, setManualForm] = useState({
+    student_id: '',
+    room_id: '',
+    seat_number: ''
+  })
+  
+  // Edit form
+  const [editForm, setEditForm] = useState({
+    id: null,
+    room_id: '',
+    seat_number: ''
+  })
 
   // Load data from backend on mount
   useEffect(() => {
@@ -130,26 +146,36 @@ export default function FinalAllotment(){
       return
     }
 
-    if(rooms.length === 0){
-      alert('No rooms found. Please add rooms first.')
+    // Filter rooms based on selection
+    const roomsToUse = selectedRoomIds.length > 0 
+      ? rooms.filter(r => selectedRoomIds.includes(r.id))
+      : rooms
+
+    if(roomsToUse.length === 0){
+      alert('No rooms selected. Please select at least one room.')
       return
     }
 
-    const totalCapacity = rooms.reduce((sum, room) => sum + parseInt(room.capacity || 0), 0)
+    const totalCapacity = roomsToUse.reduce((sum, room) => sum + parseInt(room.capacity || 0), 0)
     
     if(students.length > totalCapacity){
-      alert(`Insufficient room capacity! Students: ${students.length}, Total Capacity: ${totalCapacity}`)
+      alert(`Insufficient room capacity! Students: ${students.length}, Selected Rooms Capacity: ${totalCapacity}`)
       return
     }
 
-    if(!window.confirm(`This will automatically allocate seats for ${students.length} students across ${rooms.length} rooms. Continue?`)){
+    const confirmMsg = selectedRoomIds.length > 0
+      ? `Allocate seats for ${students.length} students in ${roomsToUse.length} selected room(s)?`
+      : `Allocate seats for ${students.length} students across all ${rooms.length} rooms?`
+    
+    if(!window.confirm(confirmMsg)){
       return
     }
 
     try {
       setLoading(true)
-      const result = await allotmentAPI.generateAllotment()
+      const result = await allotmentAPI.generateAllotment(selectedRoomIds)
       setAutoAllotModalOpen(false)
+      setSelectedRoomIds([])
       await loadAllData()
       alert(`Success! Allocated ${result.allottedSeats} students across ${result.roomsUsed} rooms.`)
     } catch (error) {
@@ -162,6 +188,85 @@ export default function FinalAllotment(){
 
   function openAutoAllot(){
     setAutoAllotModalOpen(true)
+    setSelectedRoomIds([])
+  }
+
+  function openManualAllot(){
+    setManualAllotModalOpen(true)
+    setManualForm({
+      student_id: '',
+      room_id: '',
+      seat_number: ''
+    })
+  }
+
+  async function handleManualAllot(e){
+    e.preventDefault()
+    
+    if(!manualForm.student_id || !manualForm.room_id || !manualForm.seat_number){
+      alert('Please fill all fields')
+      return
+    }
+
+    try {
+      setLoading(true)
+      await allotmentAPI.createAllotment(
+        manualForm.student_id,
+        manualForm.room_id,
+        parseInt(manualForm.seat_number)
+      )
+      setManualAllotModalOpen(false)
+      await loadAllData()
+      alert('Seat allotted successfully!')
+    } catch (error) {
+      console.error('Manual allotment failed:', error)
+      alert(error.message || 'Failed to allot seat')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function openEditModal(allotment){
+    setEditForm({
+      id: allotment.id,
+      room_id: rooms.find(r => r.room_no === allotment.room_no)?.id || '',
+      seat_number: allotment.seat_number
+    })
+    setEditModalOpen(true)
+  }
+
+  async function handleEditAllotment(e){
+    e.preventDefault()
+    
+    if(!editForm.room_id || !editForm.seat_number){
+      alert('Please fill all fields')
+      return
+    }
+
+    try {
+      setLoading(true)
+      await allotmentAPI.updateAllotment(
+        editForm.id,
+        editForm.room_id,
+        parseInt(editForm.seat_number)
+      )
+      setEditModalOpen(false)
+      await loadAllData()
+      alert('Seat allotment updated successfully!')
+    } catch (error) {
+      console.error('Update failed:', error)
+      alert(error.message || 'Failed to update allotment')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function toggleRoomSelection(roomId){
+    setSelectedRoomIds(prev => 
+      prev.includes(roomId)
+        ? prev.filter(id => id !== roomId)
+        : [...prev, roomId]
+    )
   }
 
   // Filter allotments based on search and filters
@@ -262,13 +367,22 @@ export default function FinalAllotment(){
                 </select>
               </div>
             </div>
-            <button 
-              onClick={openAutoAllot}
-              disabled={loading}
-              className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 disabled:from-gray-400 disabled:to-gray-500 text-white px-6 py-2 rounded-lg shadow-lg transition duration-200 flex items-center gap-2 font-semibold"
-            >
-              <span>⚡</span> {loading ? 'Processing...' : 'Generate Allotments'}
-            </button>
+            <div className="flex gap-2">
+              <button 
+                onClick={openManualAllot}
+                disabled={loading}
+                className="bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-500 text-white px-6 py-2 rounded-lg shadow-lg transition duration-200 flex items-center gap-2 font-semibold"
+              >
+                <span>➕</span> Manual Allot
+              </button>
+              <button 
+                onClick={openAutoAllot}
+                disabled={loading}
+                className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 disabled:from-gray-400 disabled:to-gray-500 text-white px-6 py-2 rounded-lg shadow-lg transition duration-200 flex items-center gap-2 font-semibold"
+              >
+                <span>⚡</span> {loading ? 'Processing...' : 'Generate Allotments'}
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -328,6 +442,12 @@ export default function FinalAllotment(){
                     <td className="border p-2">
                       <div className="flex gap-2 justify-center">
                         <button 
+                          onClick={()=>openEditModal(a)} 
+                          className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-sm transition-colors"
+                        >
+                          Edit
+                        </button>
+                        <button 
                           onClick={()=>confirmDelete(a.id)} 
                           className="px-3 py-1 bg-rose-500 hover:bg-rose-600 text-white rounded text-sm transition-colors"
                         >
@@ -359,11 +479,20 @@ export default function FinalAllotment(){
             </ul>
           </div>
 
-          {/* Rooms List */}
+          {/* Rooms List with Selection */}
           <div className="bg-white border border-gray-300 rounded-lg p-4">
-            <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
-              <span className="mr-2">🏢</span> Rooms to be Used ({rooms.length})
-            </h4>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="font-semibold text-gray-800 flex items-center">
+                <span className="mr-2">🏢</span> Select Rooms ({selectedRoomIds.length > 0 ? `${selectedRoomIds.length} selected` : 'All rooms'})
+              </h4>
+              <button
+                type="button"
+                onClick={() => setSelectedRoomIds([])}
+                className="text-sm text-blue-600 hover:text-blue-800 underline"
+              >
+                Clear Selection
+              </button>
+            </div>
             {rooms.length === 0 ? (
               <div className="text-center py-4 text-gray-500">
                 <p>No rooms available. Please add rooms first.</p>
@@ -371,8 +500,22 @@ export default function FinalAllotment(){
             ) : (
               <div className="max-h-48 overflow-y-auto space-y-2">
                 {rooms.map((room, index) => (
-                  <div key={room.id} className="flex items-center justify-between bg-gray-50 hover:bg-gray-100 p-3 rounded border">
+                  <div 
+                    key={room.id} 
+                    onClick={() => toggleRoomSelection(room.id)}
+                    className={`flex items-center justify-between p-3 rounded border cursor-pointer transition-colors ${ 
+                      selectedRoomIds.includes(room.id) 
+                        ? 'bg-blue-100 border-blue-400' 
+                        : 'bg-gray-50 hover:bg-gray-100 border-gray-200'
+                    }`}
+                  >
                     <div className="flex items-center gap-3">
+                      <input 
+                        type="checkbox" 
+                        checked={selectedRoomIds.includes(room.id)}
+                        onChange={() => {}}
+                        className="w-5 h-5 cursor-pointer"
+                      />
                       <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold text-sm">
                         {index + 1}
                       </div>
@@ -388,6 +531,9 @@ export default function FinalAllotment(){
                 ))}
               </div>
             )}
+            <div className="mt-3 text-sm text-gray-600 bg-blue-50 p-3 rounded">
+              💡 <strong>Tip:</strong> Select specific rooms to allocate seats only in those rooms, or leave unselected to use all rooms.
+            </div>
           </div>
 
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -397,33 +543,52 @@ export default function FinalAllotment(){
                 <div className="text-sm text-gray-600 mt-1">Total Students</div>
               </div>
               <div>
-                <div className="text-3xl font-bold text-purple-600">{rooms.length}</div>
-                <div className="text-sm text-gray-600 mt-1">Available Rooms</div>
+                <div className="text-3xl font-bold text-purple-600">
+                  {selectedRoomIds.length > 0 ? selectedRoomIds.length : rooms.length}
+                </div>
+                <div className="text-sm text-gray-600 mt-1">
+                  {selectedRoomIds.length > 0 ? 'Selected Rooms' : 'Available Rooms'}
+                </div>
               </div>
               <div>
-                <div className="text-3xl font-bold text-green-600">{rooms.reduce((sum, r) => sum + parseInt(r.capacity || 0), 0)}</div>
+                <div className="text-3xl font-bold text-green-600">
+                  {selectedRoomIds.length > 0 
+                    ? rooms.filter(r => selectedRoomIds.includes(r.id)).reduce((sum, r) => sum + parseInt(r.capacity || 0), 0)
+                    : rooms.reduce((sum, r) => sum + parseInt(r.capacity || 0), 0)
+                  }
+                </div>
                 <div className="text-sm text-gray-600 mt-1">Total Capacity</div>
               </div>
               <div>
                 <div className={`text-3xl font-bold ${
-                  students.length <= rooms.reduce((sum, r) => sum + parseInt(r.capacity || 0), 0)
+                  students.length <= (selectedRoomIds.length > 0 
+                    ? rooms.filter(r => selectedRoomIds.includes(r.id)).reduce((sum, r) => sum + parseInt(r.capacity || 0), 0)
+                    : rooms.reduce((sum, r) => sum + parseInt(r.capacity || 0), 0))
                     ? 'text-green-600'
                     : 'text-rose-600'
                 }`}>
-                  {students.length <= rooms.reduce((sum, r) => sum + parseInt(r.capacity || 0), 0) ? 'Sufficient' : 'Exceeded'}
+                  {students.length <= (selectedRoomIds.length > 0 
+                    ? rooms.filter(r => selectedRoomIds.includes(r.id)).reduce((sum, r) => sum + parseInt(r.capacity || 0), 0)
+                    : rooms.reduce((sum, r) => sum + parseInt(r.capacity || 0), 0)) ? 'Sufficient' : 'Exceeded'}
                 </div>
                 <div className="text-sm text-gray-600 mt-1">Capacity Status</div>
               </div>
             </div>
           </div>
 
-          {students.length > rooms.reduce((sum, r) => sum + parseInt(r.capacity || 0), 0) && (
+          {students.length > (selectedRoomIds.length > 0 
+            ? rooms.filter(r => selectedRoomIds.includes(r.id)).reduce((sum, r) => sum + parseInt(r.capacity || 0), 0)
+            : rooms.reduce((sum, r) => sum + parseInt(r.capacity || 0), 0)) && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
               <div className="flex items-center text-red-800">
                 <span className="text-xl mr-2">⚠️</span>
                 <div>
                   <div className="font-semibold">Insufficient Capacity!</div>
-                  <div className="text-sm">Please add more rooms or reduce student count before allotment.</div>
+                  <div className="text-sm">
+                    {selectedRoomIds.length > 0 
+                      ? 'Selected rooms do not have enough capacity. Please select more rooms.'
+                      : 'Please add more rooms or reduce student count before allotment.'}
+                  </div>
                 </div>
               </div>
             </div>
@@ -454,6 +619,139 @@ export default function FinalAllotment(){
           <button onClick={()=>setDeleteId(null)} className="px-3 py-1 bg-gray-200 rounded">Cancel</button>
           <button onClick={doDelete} className="px-3 py-1 bg-rose-300 rounded">Delete</button>
         </div>
+      </Modal>
+
+      {/* Manual Allotment Modal */}
+      <Modal open={manualAllotModalOpen} title="➕ Manual Seat Allotment" onClose={()=>setManualAllotModalOpen(false)}>
+        <form onSubmit={handleManualAllot} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Select Student *</label>
+            <select
+              value={manualForm.student_id}
+              onChange={(e) => setManualForm({...manualForm, student_id: e.target.value})}
+              className="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-blue-500 focus:outline-none"
+              required
+            >
+              <option value="">-- Select Student --</option>
+              {students.map(student => (
+                <option key={student.id} value={student.id}>
+                  {student.roll_no} - {student.name} ({student.department})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Select Room *</label>
+            <select
+              value={manualForm.room_id}
+              onChange={(e) => setManualForm({...manualForm, room_id: e.target.value})}
+              className="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-blue-500 focus:outline-none"
+              required
+            >
+              <option value="">-- Select Room --</option>
+              {rooms.map(room => (
+                <option key={room.id} value={room.id}>
+                  {room.room_no} - Floor {room.floor} (Capacity: {room.capacity})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Seat Number *</label>
+            <input
+              type="number"
+              value={manualForm.seat_number}
+              onChange={(e) => setManualForm({...manualForm, seat_number: e.target.value})}
+              className="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-blue-500 focus:outline-none"
+              placeholder="Enter seat number"
+              min="1"
+              required
+            />
+          </div>
+
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+            <p className="text-sm text-yellow-800">
+              <strong>⚠️ Note:</strong> Make sure the seat number is within the room's capacity and not already occupied.
+            </p>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <button 
+              type="button" 
+              onClick={() => setManualAllotModalOpen(false)} 
+              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg transition duration-200"
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit"
+              disabled={loading}
+              className="px-6 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-500 text-white rounded-lg shadow-lg transition duration-200 flex items-center gap-2 font-semibold"
+            >
+              <span>✓</span> {loading ? 'Allotting...' : 'Allot Seat'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Edit Allotment Modal */}
+      <Modal open={editModalOpen} title="✏️ Edit Seat Allotment" onClose={()=>setEditModalOpen(false)}>
+        <form onSubmit={handleEditAllotment} className="space-y-4">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+            <p className="text-sm text-blue-800">
+              <strong>ℹ️ Info:</strong> You can change the room and seat number for this allotment.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Select Room *</label>
+            <select
+              value={editForm.room_id}
+              onChange={(e) => setEditForm({...editForm, room_id: e.target.value})}
+              className="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-blue-500 focus:outline-none"
+              required
+            >
+              <option value="">-- Select Room --</option>
+              {rooms.map(room => (
+                <option key={room.id} value={room.id}>
+                  {room.room_no} - Floor {room.floor} (Capacity: {room.capacity})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Seat Number *</label>
+            <input
+              type="number"
+              value={editForm.seat_number}
+              onChange={(e) => setEditForm({...editForm, seat_number: e.target.value})}
+              className="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-blue-500 focus:outline-none"
+              placeholder="Enter seat number"
+              min="1"
+              required
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <button 
+              type="button" 
+              onClick={() => setEditModalOpen(false)} 
+              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg transition duration-200"
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit"
+              disabled={loading}
+              className="px-6 py-2 bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 disabled:from-gray-400 disabled:to-gray-500 text-white rounded-lg shadow-lg transition duration-200 flex items-center gap-2 font-semibold"
+            >
+              <span>✓</span> {loading ? 'Updating...' : 'Update Allotment'}
+            </button>
+          </div>
+        </form>
       </Modal>
     </div>
   )

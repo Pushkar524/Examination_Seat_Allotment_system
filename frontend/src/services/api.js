@@ -178,9 +178,17 @@ export const uploadAPI = {
 
 // Allotment APIs
 export const allotmentAPI = {
-  generateAllotment: async () => {
+  generateAllotment: async (roomIds = []) => {
     return await apiCall('/allotment/allot', {
       method: 'POST',
+      body: JSON.stringify({ room_ids: roomIds }),
+    });
+  },
+
+  createAllotment: async (student_id, room_id, seat_number) => {
+    return await apiCall('/allotment/allotments', {
+      method: 'POST',
+      body: JSON.stringify({ student_id, room_id, seat_number }),
     });
   },
 
