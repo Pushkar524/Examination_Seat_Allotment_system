@@ -14,7 +14,10 @@ export default function RegisterStaff(){
   
   // Manual add state
   const [addModalOpen, setAddModalOpen] = useState(false)
+  const [editModalOpen, setEditModalOpen] = useState(false)
+  const [deleteId, setDeleteId] = useState(null)
   const [invigilatorForm, setInvigilatorForm] = useState({
+    id: null,
     invigilator_id: '',
     name: ''
   })
@@ -81,8 +84,19 @@ export default function RegisterStaff(){
   function openAddModal() {
     setAddModalOpen(true)
     setInvigilatorForm({
+      id: null,
       invigilator_id: '',
       name: ''
+    })
+    setFormError('')
+  }
+
+  function openEditModal(invigilator) {
+    setEditModalOpen(true)
+    setInvigilatorForm({
+      id: invigilator.id,
+      invigilator_id: invigilator.invigilator_id,
+      name: invigilator.name
     })
     setFormError('')
   }
@@ -99,6 +113,40 @@ export default function RegisterStaff(){
       alert('Invigilator added successfully!')
     } catch (error) {
       setFormError(error.message || 'Failed to add invigilator')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleUpdate(e) {
+    e.preventDefault()
+    setFormError('')
+    setLoading(true)
+
+    try {
+      const { id, ...data } = invigilatorForm
+      await uploadAPI.updateInvigilator(id, data)
+      await loadInvigilators()
+      setEditModalOpen(false)
+      alert('Invigilator updated successfully!')
+    } catch (error) {
+      setFormError(error.message || 'Failed to update invigilator')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleDelete() {
+    if (!deleteId) return
+    
+    try {
+      setLoading(true)
+      await uploadAPI.deleteInvigilator(deleteId)
+      await loadInvigilators()
+      setDeleteId(null)
+      alert('Invigilator deleted successfully!')
+    } catch (error) {
+      alert(error.message || 'Failed to delete invigilator')
     } finally {
       setLoading(false)
     }
@@ -137,6 +185,9 @@ export default function RegisterStaff(){
               <tr className="bg-gray-100">
                 <th className="border p-2">Invigilator ID</th>
                 <th className="border p-2">Name</th>
+                {isAdmin && (
+                  <th className="border p-2">Actions</th>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -144,10 +195,28 @@ export default function RegisterStaff(){
                 <tr key={inv.id} className="h-12 hover:bg-gray-50">
                   <td className="border p-2">{inv.invigilator_id}</td>
                   <td className="border p-2">{inv.name}</td>
+                  {isAdmin && (
+                    <td className="border p-2">
+                      <div className="flex gap-2 justify-center">
+                        <button 
+                          onClick={() => openEditModal(inv)}
+                          className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600"
+                        >
+                          Edit
+                        </button>
+                        <button 
+                          onClick={() => setDeleteId(inv.id)}
+                          className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  )}
                 </tr>
               ))}
               {invigilators.length===0 && !loading && (
-                <tr className="h-12"><td className="p-4 text-center text-gray-500" colSpan={2}>No invigilators yet. Upload a file to add invigilators.</td></tr>
+                <tr className="h-12"><td className="p-4 text-center text-gray-500" colSpan={isAdmin ? 3 : 2}>No invigilators yet. Upload a file to add invigilators.</td></tr>
               )}
             </tbody>
           </table>
@@ -268,6 +337,84 @@ Prof. Maria Johnson,INV002`}
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* Edit Invigilator Modal */}
+      <Modal open={editModalOpen} title="Edit Invigilator" onClose={()=>setEditModalOpen(false)}>
+        <form onSubmit={handleUpdate} className="p-4 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Invigilator ID *</label>
+            <input
+              type="text"
+              value={invigilatorForm.invigilator_id}
+              onChange={(e) => setInvigilatorForm({...invigilatorForm, invigilator_id: e.target.value})}
+              className="input w-full"
+              required
+              placeholder="e.g., INV001"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+            <input
+              type="text"
+              value={invigilatorForm.name}
+              onChange={(e) => setInvigilatorForm({...invigilatorForm, name: e.target.value})}
+              className="input w-full"
+              required
+              placeholder="e.g., Dr. Robert Smith"
+            />
+          </div>
+
+          {formError && (
+            <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded">
+              <p className="text-red-800 text-sm">{formError}</p>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <button
+              type="button"
+              onClick={() => setEditModalOpen(false)}
+              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition"
+              disabled={loading}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-6 py-2 bg-green-500 hover:bg-green-600 text-white rounded transition"
+              disabled={loading}
+            >
+              {loading ? 'Updating...' : 'Update Invigilator'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal open={!!deleteId} title="Confirm Delete" onClose={()=>setDeleteId(null)}>
+        <div className="p-4 space-y-4">
+          <p className="text-gray-700">
+            Are you sure you want to delete this invigilator? This action cannot be undone.
+          </p>
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <button
+              onClick={() => setDeleteId(null)}
+              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition"
+              disabled={loading}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleDelete}
+              className="px-6 py-2 bg-red-500 hover:bg-red-600 text-white rounded transition"
+              disabled={loading}
+            >
+              {loading ? 'Deleting...' : 'Delete'}
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   )

@@ -14,7 +14,10 @@ export default function Rooms(){
   
   // Manual add state
   const [addModalOpen, setAddModalOpen] = useState(false)
+  const [editModalOpen, setEditModalOpen] = useState(false)
+  const [deleteId, setDeleteId] = useState(null)
   const [roomForm, setRoomForm] = useState({
+    id: null,
     room_no: '',
     capacity: '',
     floor: ''
@@ -82,9 +85,21 @@ export default function Rooms(){
   function openAddModal() {
     setAddModalOpen(true)
     setRoomForm({
+      id: null,
       room_no: '',
       capacity: '',
       floor: ''
+    })
+    setFormError('')
+  }
+
+  function openEditModal(room) {
+    setEditModalOpen(true)
+    setRoomForm({
+      id: room.id,
+      room_no: room.room_no,
+      capacity: room.capacity,
+      floor: room.floor
     })
     setFormError('')
   }
@@ -101,6 +116,40 @@ export default function Rooms(){
       alert('Room added successfully!')
     } catch (error) {
       setFormError(error.message || 'Failed to add room')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleUpdate(e) {
+    e.preventDefault()
+    setFormError('')
+    setLoading(true)
+
+    try {
+      const { id, ...data } = roomForm
+      await uploadAPI.updateRoom(id, data)
+      await loadRooms()
+      setEditModalOpen(false)
+      alert('Room updated successfully!')
+    } catch (error) {
+      setFormError(error.message || 'Failed to update room')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleDelete() {
+    if (!deleteId) return
+    
+    try {
+      setLoading(true)
+      await uploadAPI.deleteRoom(deleteId)
+      await loadRooms()
+      setDeleteId(null)
+      alert('Room deleted successfully!')
+    } catch (error) {
+      alert(error.message || 'Failed to delete room')
     } finally {
       setLoading(false)
     }
@@ -146,6 +195,9 @@ export default function Rooms(){
                 <th className="border p-3">ROOM NO</th>
                 <th className="border p-3">FLOOR</th>
                 <th className="border p-3">CAPACITY</th>
+                {user?.role === 'admin' && (
+                  <th className="border p-3">ACTIONS</th>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -154,10 +206,28 @@ export default function Rooms(){
                   <td className="border p-2 font-medium">{r.room_no}</td>
                   <td className="border p-2">{r.floor}</td>
                   <td className="border p-2">{r.capacity}</td>
+                  {user?.role === 'admin' && (
+                    <td className="border p-2">
+                      <div className="flex gap-2 justify-center">
+                        <button 
+                          onClick={() => openEditModal(r)}
+                          className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600"
+                        >
+                          Edit
+                        </button>
+                        <button 
+                          onClick={() => setDeleteId(r.id)}
+                          className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  )}
                 </tr>
               ))}
               {rooms.length===0 && !loading && (
-                <tr className="h-12"><td className="p-4 text-center text-gray-500" colSpan={3}>No rooms yet. Upload a file to add rooms.</td></tr>
+                <tr className="h-12"><td className="p-4 text-center text-gray-500" colSpan={user?.role === 'admin' ? 4 : 3}>No rooms yet. Upload a file to add rooms.</td></tr>
               )}
             </tbody>
           </table>
@@ -292,6 +362,99 @@ R201,30,2`}
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* Edit Room Modal */}
+      <Modal open={editModalOpen} title="Edit Room" onClose={()=>setEditModalOpen(false)}>
+        <form onSubmit={handleUpdate} className="p-4 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Room Number *</label>
+            <input
+              type="text"
+              value={roomForm.room_no}
+              onChange={(e) => setRoomForm({...roomForm, room_no: e.target.value})}
+              className="input w-full"
+              required
+              placeholder="e.g., R101, A-203"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Capacity *</label>
+            <input
+              type="number"
+              value={roomForm.capacity}
+              onChange={(e) => setRoomForm({...roomForm, capacity: e.target.value})}
+              className="input w-full"
+              required
+              min="1"
+              placeholder="e.g., 30"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Floor</label>
+            <input
+              type="text"
+              value={roomForm.floor}
+              onChange={(e) => setRoomForm({...roomForm, floor: e.target.value})}
+              className="input w-full"
+              placeholder="e.g., 1, Ground, First Floor"
+            />
+          </div>
+
+          {formError && (
+            <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded">
+              <p className="text-red-800 text-sm">{formError}</p>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <button
+              type="button"
+              onClick={() => setEditModalOpen(false)}
+              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition"
+              disabled={loading}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-6 py-2 bg-green-500 hover:bg-green-600 text-white rounded transition"
+              disabled={loading}
+            >
+              {loading ? 'Updating...' : 'Update Room'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal open={!!deleteId} title="Confirm Delete" onClose={()=>setDeleteId(null)}>
+        <div className="p-4 space-y-4">
+          <p className="text-gray-700">
+            Are you sure you want to delete this room? This action cannot be undone.
+          </p>
+          <div className="bg-yellow-50 border-l-4 border-yellow-500 p-3 rounded">
+            <p className="text-yellow-800 text-sm">⚠️ If this room has seat allotments, the deletion will fail.</p>
+          </div>
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <button
+              onClick={() => setDeleteId(null)}
+              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition"
+              disabled={loading}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleDelete}
+              className="px-6 py-2 bg-red-500 hover:bg-red-600 text-white rounded transition"
+              disabled={loading}
+            >
+              {loading ? 'Deleting...' : 'Delete'}
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   )

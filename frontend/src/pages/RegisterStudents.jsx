@@ -14,7 +14,10 @@ export default function RegisterStudents(){
   
   // Manual add state
   const [addModalOpen, setAddModalOpen] = useState(false)
+  const [editModalOpen, setEditModalOpen] = useState(false)
+  const [deleteId, setDeleteId] = useState(null)
   const [studentForm, setStudentForm] = useState({
+    id: null,
     name: '',
     roll_no: '',
     date_of_birth: '',
@@ -84,11 +87,25 @@ export default function RegisterStudents(){
   function openAddModal() {
     setAddModalOpen(true)
     setStudentForm({
+      id: null,
       name: '',
       roll_no: '',
       date_of_birth: '',
       department: '',
       academic_year: ''
+    })
+    setFormError('')
+  }
+
+  function openEditModal(student) {
+    setEditModalOpen(true)
+    setStudentForm({
+      id: student.id,
+      name: student.name,
+      roll_no: student.roll_no,
+      date_of_birth: student.date_of_birth,
+      department: student.department,
+      academic_year: student.academic_year
     })
     setFormError('')
   }
@@ -105,6 +122,40 @@ export default function RegisterStudents(){
       alert('Student added successfully!')
     } catch (error) {
       setFormError(error.message || 'Failed to add student')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleUpdate(e) {
+    e.preventDefault()
+    setFormError('')
+    setLoading(true)
+
+    try {
+      const { id, ...data } = studentForm
+      await uploadAPI.updateStudent(id, data)
+      await loadStudents()
+      setEditModalOpen(false)
+      alert('Student updated successfully!')
+    } catch (error) {
+      setFormError(error.message || 'Failed to update student')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleDelete() {
+    if (!deleteId) return
+    
+    try {
+      setLoading(true)
+      await uploadAPI.deleteStudent(deleteId)
+      await loadStudents()
+      setDeleteId(null)
+      alert('Student deleted successfully!')
+    } catch (error) {
+      alert(error.message || 'Failed to delete student')
     } finally {
       setLoading(false)
     }
@@ -146,6 +197,7 @@ export default function RegisterStudents(){
                 <th className="border p-2">DOB</th>
                 <th className="border p-2">Department</th>
                 <th className="border p-2">Year</th>
+                {isAdmin && <th className="border p-2">Actions</th>}
               </tr>
             </thead>
             <tbody>
@@ -156,10 +208,28 @@ export default function RegisterStudents(){
                   <td className="border p-2">{s.date_of_birth}</td>
                   <td className="border p-2">{s.department}</td>
                   <td className="border p-2">{s.academic_year}</td>
+                  {isAdmin && (
+                    <td className="border p-2">
+                      <div className="flex gap-2 justify-center">
+                        <button
+                          onClick={() => openEditModal(s)}
+                          className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-sm transition-colors"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => setDeleteId(s.id)}
+                          className="px-3 py-1 bg-rose-500 hover:bg-rose-600 text-white rounded text-sm transition-colors"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  )}
                 </tr>
               ))}
               {students.length===0 && !loading && (
-                <tr className="h-12"><td className="p-4 text-center text-gray-500" colSpan={5}>No students yet. Upload a file to add students.</td></tr>
+                <tr className="h-12"><td className="p-4 text-center text-gray-500" colSpan={isAdmin ? 6 : 5}>No students yet. Upload a file to add students.</td></tr>
               )}
             </tbody>
           </table>
@@ -318,6 +388,111 @@ Jane Smith,CS2021002,2003-08-20,Computer Science,2021-2025`}
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* Edit Modal */}
+      <Modal open={editModalOpen} title="Edit Student" onClose={()=>setEditModalOpen(false)}>
+        <form onSubmit={handleUpdate} className="p-4 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+            <input
+              type="text"
+              value={studentForm.name}
+              onChange={(e) => setStudentForm({...studentForm, name: e.target.value})}
+              className="input w-full"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Roll Number *</label>
+            <input
+              type="text"
+              value={studentForm.roll_no}
+              onChange={(e) => setStudentForm({...studentForm, roll_no: e.target.value})}
+              className="input w-full"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth *</label>
+            <input
+              type="date"
+              value={studentForm.date_of_birth}
+              onChange={(e) => setStudentForm({...studentForm, date_of_birth: e.target.value})}
+              className="input w-full"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Department *</label>
+            <input
+              type="text"
+              value={studentForm.department}
+              onChange={(e) => setStudentForm({...studentForm, department: e.target.value})}
+              className="input w-full"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Academic Year *</label>
+            <input
+              type="text"
+              value={studentForm.academic_year}
+              onChange={(e) => setStudentForm({...studentForm, academic_year: e.target.value})}
+              className="input w-full"
+              required
+            />
+          </div>
+
+          {formError && (
+            <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded">
+              <p className="text-red-800 text-sm">{formError}</p>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <button
+              type="button"
+              onClick={() => setEditModalOpen(false)}
+              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition"
+              disabled={loading}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded transition"
+              disabled={loading}
+            >
+              {loading ? 'Updating...' : 'Update Student'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal open={!!deleteId} title="Confirm Delete" onClose={()=>setDeleteId(null)}>
+        <div className="p-4">
+          <p className="text-gray-700 mb-4">Are you sure you want to delete this student? This action cannot be undone.</p>
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={() => setDeleteId(null)}
+              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleDelete}
+              className="px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded transition"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   )

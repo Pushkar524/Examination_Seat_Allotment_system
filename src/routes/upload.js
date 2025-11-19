@@ -422,4 +422,180 @@ router.patch('/invigilators/:id/assign', authMiddleware(['admin']), async (req, 
   }
 });
 
+// Delete student
+router.delete('/students/:id', authMiddleware(['admin']), async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const { id } = req.params;
+    
+    await client.query('BEGIN');
+    
+    // Get user_id before deleting student
+    const studentResult = await client.query('SELECT user_id FROM students WHERE id = $1', [id]);
+    if (studentResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+    
+    const userId = studentResult.rows[0].user_id;
+    
+    // Delete student (cascade will handle seat_allotments)
+    await client.query('DELETE FROM students WHERE id = $1', [id]);
+    
+    // Delete user account
+    if (userId) {
+      await client.query('DELETE FROM users WHERE id = $1', [userId]);
+    }
+    
+    await client.query('COMMIT');
+    res.json({ message: 'Student deleted successfully' });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Delete student error:', error);
+    res.status(500).json({ error: 'Failed to delete student' });
+  } finally {
+    client.release();
+  }
+});
+
+// Update student
+router.put('/students/:id', authMiddleware(['admin']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, roll_no, date_of_birth, department, academic_year } = req.body;
+
+    if (!name || !roll_no || !date_of_birth || !department || !academic_year) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
+
+    const result = await pool.query(
+      `UPDATE students 
+       SET name = $1, roll_no = $2, date_of_birth = $3, department = $4, academic_year = $5
+       WHERE id = $6
+       RETURNING *`,
+      [name, roll_no, date_of_birth, department, academic_year, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    res.json({ message: 'Student updated successfully', student: result.rows[0] });
+  } catch (error) {
+    console.error('Update student error:', error);
+    if (error.code === '23505') {
+      res.status(400).json({ error: 'Roll number already exists' });
+    } else {
+      res.status(500).json({ error: 'Failed to update student' });
+    }
+  }
+});
+
+// Delete room
+router.delete('/rooms/:id', authMiddleware(['admin']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Check if room has allotments
+    const checkResult = await pool.query('SELECT COUNT(*) FROM seat_allotments WHERE room_id = $1', [id]);
+    if (parseInt(checkResult.rows[0].count) > 0) {
+      return res.status(400).json({ error: 'Cannot delete room with existing seat allotments' });
+    }
+    
+    const result = await pool.query('DELETE FROM rooms WHERE id = $1 RETURNING *', [id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Room not found' });
+    }
+    
+    res.json({ message: 'Room deleted successfully' });
+  } catch (error) {
+    console.error('Delete room error:', error);
+    res.status(500).json({ error: 'Failed to delete room' });
+  }
+});
+
+// Update room
+router.put('/rooms/:id', authMiddleware(['admin']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { room_no, capacity, floor } = req.body;
+
+    if (!room_no || !capacity || !floor) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
+
+    const result = await pool.query(
+      `UPDATE rooms 
+       SET room_no = $1, capacity = $2, floor = $3
+       WHERE id = $4
+       RETURNING *`,
+      [room_no, capacity, floor, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Room not found' });
+    }
+
+    res.json({ message: 'Room updated successfully', room: result.rows[0] });
+  } catch (error) {
+    console.error('Update room error:', error);
+    if (error.code === '23505') {
+      res.status(400).json({ error: 'Room number already exists' });
+    } else {
+      res.status(500).json({ error: 'Failed to update room' });
+    }
+  }
+});
+
+// Delete invigilator
+router.delete('/invigilators/:id', authMiddleware(['admin']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const result = await pool.query('DELETE FROM invigilators WHERE id = $1 RETURNING *', [id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Invigilator not found' });
+    }
+    
+    res.json({ message: 'Invigilator deleted successfully' });
+  } catch (error) {
+    console.error('Delete invigilator error:', error);
+    res.status(500).json({ error: 'Failed to delete invigilator' });
+  }
+});
+
+// Update invigilator
+router.put('/invigilators/:id', authMiddleware(['admin']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, invigilator_id } = req.body;
+
+    if (!name || !invigilator_id) {
+      return res.status(400).json({ error: 'Name and invigilator ID are required' });
+    }
+
+    const result = await pool.query(
+      `UPDATE invigilators 
+       SET name = $1, invigilator_id = $2
+       WHERE id = $3
+       RETURNING *`,
+      [name, invigilator_id, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Invigilator not found' });
+    }
+
+    res.json({ message: 'Invigilator updated successfully', invigilator: result.rows[0] });
+  } catch (error) {
+    console.error('Update invigilator error:', error);
+    if (error.code === '23505') {
+      res.status(400).json({ error: 'Invigilator ID already exists' });
+    } else {
+      res.status(500).json({ error: 'Failed to update invigilator' });
+    }
+  }
+});
+
 module.exports = router;

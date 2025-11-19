@@ -146,6 +146,19 @@ export const uploadAPI = {
     });
   },
 
+  updateStudent: async (id, studentData) => {
+    return await apiCall(`/upload/students/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(studentData),
+    });
+  },
+
+  deleteStudent: async (id) => {
+    return await apiCall(`/upload/students/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
   getRooms: async () => {
     return await apiCall('/upload/rooms');
   },
@@ -157,6 +170,19 @@ export const uploadAPI = {
     });
   },
 
+  updateRoom: async (id, roomData) => {
+    return await apiCall(`/upload/rooms/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(roomData),
+    });
+  },
+
+  deleteRoom: async (id) => {
+    return await apiCall(`/upload/rooms/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
   getInvigilators: async () => {
     return await apiCall('/upload/invigilators');
   },
@@ -165,6 +191,19 @@ export const uploadAPI = {
     return await apiCall('/upload/invigilators/add', {
       method: 'POST',
       body: JSON.stringify(invigilatorData),
+    });
+  },
+
+  updateInvigilator: async (id, invigilatorData) => {
+    return await apiCall(`/upload/invigilators/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(invigilatorData),
+    });
+  },
+
+  deleteInvigilator: async (id) => {
+    return await apiCall(`/upload/invigilators/${id}`, {
+      method: 'DELETE',
     });
   },
 
