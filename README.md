@@ -200,7 +200,7 @@ Examination_Seat_Allotment_system/
    - id, room_no, capacity, floor
 
 4. **invigilators** - Invigilator information
-   - id, name, invigilator_id, room_id (foreign key to rooms)
+   - id, name, invigilator_id, room_id (foreign key to rooms, unique constraint)
 
 5. **seat_allotments** - Seat assignment records
    - id, student_id, room_id, seat_number, allotment_date
@@ -225,6 +225,7 @@ Examination_Seat_Allotment_system/
    - Navigate to "Assign Invigilators" page
    - View all invigilators and their current assignments
    - Use dropdown to assign invigilators to specific rooms
+   - **Note:** Each room can only be assigned to one invigilator. Already assigned rooms are disabled in the dropdown.
    - Assignments are saved immediately
 
 5. **View & Export:**
@@ -278,7 +279,7 @@ Prof. Maria Johnson,INV002
 - `POST /api/upload/invigilators/upload` - Bulk upload invigilators
 - `POST /api/upload/invigilators/add` - Add single invigilator
 - `GET /api/upload/invigilators` - Get all invigilators (includes room assignment)
-- `PATCH /api/upload/invigilators/:id/assign` - Assign invigilator to room
+- `PATCH /api/upload/invigilators/:id/assign` - Assign invigilator to room (validates uniqueness)
 
 ### Seat Allotment (Admin Only)
 - `POST /api/allotment/allot` - Trigger automatic seat allotment
