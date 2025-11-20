@@ -26,24 +26,28 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // Helper function to parse CSV or Excel file
+// Supports .csv, .xlsx, and .xls formats
+// Returns a promise that resolves with the parsed data as an array of objects
 const parseFile = (filePath) => {
   return new Promise((resolve, reject) => {
     const ext = filePath.split('.').pop().toLowerCase();
     
     if (ext === 'csv') {
+      // Parse CSV file using csv-parser
       const results = [];
       fs.createReadStream(filePath)
         .pipe(csv())
         .on('data', (data) => results.push(data))
         .on('end', () => {
-          fs.unlinkSync(filePath); // Delete file after parsing
+          fs.unlinkSync(filePath); // Delete file after parsing to save space
           resolve(results);
         })
         .on('error', reject);
     } else if (ext === 'xlsx' || ext === 'xls') {
+      // Parse Excel file using xlsx library
       try {
         const workbook = xlsx.readFile(filePath);
-        const sheetName = workbook.SheetNames[0];
+        const sheetName = workbook.SheetNames[0]; // Read the first sheet
         const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
         fs.unlinkSync(filePath); // Delete file after parsing
         resolve(data);
@@ -57,6 +61,9 @@ const parseFile = (filePath) => {
 };
 
 // Upload Students
+// Expects a file upload with field name 'file'
+// Parses the file and inserts/updates students in the database
+// Also creates a user account for each student
 router.post('/students/upload', authMiddleware(['admin']), upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
@@ -67,7 +74,7 @@ router.post('/students/upload', authMiddleware(['admin']), upload.single('file')
     const client = await pool.connect();
     
     try {
-      await client.query('BEGIN');
+      await client.query('BEGIN'); // Start transaction
       
       let successCount = 0;
       let errorCount = 0;
@@ -76,6 +83,7 @@ router.post('/students/upload', authMiddleware(['admin']), upload.single('file')
       for (const student of students) {
         try {
           // Create user account for student (using roll_no as email prefix)
+          // Default password is date_of_birth or '123456'
           const email = `${student.roll_no}@student.edu`;
           const defaultPassword = await bcrypt.hash(student.date_of_birth || '123456', 10);
           
@@ -89,7 +97,7 @@ router.post('/students/upload', authMiddleware(['admin']), upload.single('file')
           
           const userId = userResult.rows[0].id;
 
-          // Insert student data
+          // Insert student data linked to the user account
           await client.query(
             `INSERT INTO students (user_id, name, roll_no, date_of_birth, department, academic_year)
              VALUES ($1, $2, $3, $4, $5, $6)
@@ -108,7 +116,7 @@ router.post('/students/upload', authMiddleware(['admin']), upload.single('file')
         }
       }
 
-      await client.query('COMMIT');
+      await client.query('COMMIT'); // Commit transaction if all goes well
       
       res.json({
         message: 'Students upload completed',
@@ -117,7 +125,7 @@ router.post('/students/upload', authMiddleware(['admin']), upload.single('file')
         errors: errors.length > 0 ? errors : undefined
       });
     } catch (error) {
-      await client.query('ROLLBACK');
+      await client.query('ROLLBACK'); // Rollback transaction on error
       throw error;
     } finally {
       client.release();
@@ -385,12 +393,14 @@ router.post('/invigilators/add', authMiddleware(['admin']), async (req, res) => 
 });
 
 // Assign invigilator to room
+// Updates the room_id for a specific invigilator
+// Enforces one-room-per-invigilator rule
 router.patch('/invigilators/:id/assign', authMiddleware(['admin']), async (req, res) => {
   try {
     const { id } = req.params;
     const { room_id } = req.body;
 
-    // If room_id is null, we're unassigning
+    // If room_id is null, we're unassigning the invigilator from any room
     if (room_id === null) {
       const result = await pool.query(
         'UPDATE invigilators SET room_id = NULL WHERE id = $1 RETURNING *',
@@ -399,13 +409,14 @@ router.patch('/invigilators/:id/assign', authMiddleware(['admin']), async (req, 
       return res.json({ message: 'Invigilator unassigned successfully', invigilator: result.rows[0] });
     }
 
-    // Check if room exists
+    // Check if room exists in the database
     const roomCheck = await pool.query('SELECT id FROM rooms WHERE id = $1', [room_id]);
     if (roomCheck.rows.length === 0) {
       return res.status(404).json({ error: 'Room not found' });
     }
 
     // Check if room is already assigned to another invigilator
+    // This prevents multiple invigilators being assigned to the same room
     const existingAssignment = await pool.query(
       'SELECT id, name FROM invigilators WHERE room_id = $1 AND id != $2',
       [room_id, id]
@@ -419,6 +430,7 @@ router.patch('/invigilators/:id/assign', authMiddleware(['admin']), async (req, 
     }
 
     // Assign invigilator to room
+    // The database also has a UNIQUE constraint on room_id to ensure integrity
     const result = await pool.query(
       'UPDATE invigilators SET room_id = $1 WHERE id = $2 RETURNING *',
       [room_id, id]

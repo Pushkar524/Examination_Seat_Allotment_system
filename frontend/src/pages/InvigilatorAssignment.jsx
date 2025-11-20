@@ -15,9 +15,11 @@ export default function InvigilatorAssignment(){
     }
   }, [isAdmin])
 
+  // Load initial data (invigilators and rooms)
   async function loadData() {
     try {
       setLoading(true)
+      // Fetch both invigilators and rooms in parallel
       const [invigilatorsData, roomsData] = await Promise.all([
         uploadAPI.getInvigilators(),
         uploadAPI.getRooms()
@@ -32,11 +34,13 @@ export default function InvigilatorAssignment(){
     }
   }
 
+  // Handle assignment of an invigilator to a room
+  // If roomId is empty string, it means unassignment
   async function handleAssignment(invigilatorId, roomId) {
     try {
       setLoading(true)
       await uploadAPI.assignInvigilator(invigilatorId, roomId === '' ? null : roomId)
-      await loadData()
+      await loadData() // Reload data to reflect changes
       alert(roomId === '' ? 'Invigilator unassigned successfully!' : 'Invigilator assigned successfully!')
     } catch (error) {
       console.error('Assignment failed:', error)
@@ -44,6 +48,7 @@ export default function InvigilatorAssignment(){
       const errorMessage = error.response?.data?.error || error.message || 'Failed to assign invigilator'
       const assignedTo = error.response?.data?.assignedTo
       
+      // Show detailed error if room is already assigned
       if (assignedTo) {
         alert(`${errorMessage}\nCurrently assigned to: ${assignedTo}`)
       } else {
@@ -54,6 +59,7 @@ export default function InvigilatorAssignment(){
     }
   }
 
+  // Filter invigilators based on search input
   const filteredInvigilators = invigilators.filter(inv => 
     inv.name.toLowerCase().includes(filter.toLowerCase()) ||
     inv.invigilator_id.toLowerCase().includes(filter.toLowerCase()) ||

@@ -5,17 +5,21 @@ const authMiddleware = require('../middleware/auth');
 const router = express.Router();
 
 // Trigger seat allotment process
+// This is the core algorithm for assigning seats to students
+// It clears existing allotments and re-assigns all students to available rooms
+// Students are sorted by roll number and assigned sequentially to rooms
 router.post('/allot', authMiddleware(['admin']), async (req, res) => {
   const client = await pool.connect();
   
   try {
-    const { room_ids } = req.body;
+    const { room_ids } = req.body; // Optional: specific rooms to use for allotment
     await client.query('BEGIN');
 
-    // Clear existing allotments
+    // Clear existing allotments to start fresh
     await client.query('DELETE FROM seat_allotments');
 
     // Get all students ordered by roll number
+    // This ensures a deterministic and logical seating order
     const studentsResult = await client.query(
       'SELECT id, roll_no FROM students ORDER BY roll_no'
     );
@@ -26,6 +30,7 @@ router.post('/allot', authMiddleware(['admin']), async (req, res) => {
     }
 
     // Get rooms - either selected rooms or all rooms
+    // Ordered by room_no to fill rooms in a specific order
     let roomsQuery = 'SELECT id, room_no, capacity FROM rooms';
     let roomsParams = [];
     
@@ -43,9 +48,10 @@ router.post('/allot', authMiddleware(['admin']), async (req, res) => {
       return res.status(400).json({ error: 'No rooms found for seat allotment' });
     }
 
-    // Calculate total capacity
+    // Calculate total capacity of all available rooms
     const totalCapacity = rooms.reduce((sum, room) => sum + parseInt(room.capacity), 0);
 
+    // Check if we have enough seats for all students
     if (students.length > totalCapacity) {
       return res.status(400).json({ 
         error: 'Insufficient room capacity',
@@ -54,11 +60,13 @@ router.post('/allot', authMiddleware(['admin']), async (req, res) => {
       });
     }
 
-    // Allot seats
+    // Allot seats algorithm
+    // Iterates through rooms and fills them up to capacity
     let studentIndex = 0;
     let allottedCount = 0;
 
     for (const room of rooms) {
+      // Fill current room seat by seat
       for (let seatNumber = 1; seatNumber <= room.capacity && studentIndex < students.length; seatNumber++) {
         const student = students[studentIndex];
         
@@ -72,6 +80,7 @@ router.post('/allot', authMiddleware(['admin']), async (req, res) => {
         studentIndex++;
       }
 
+      // Stop if all students are assigned
       if (studentIndex >= students.length) {
         break;
       }
