@@ -40,7 +40,15 @@ export default function InvigilatorAssignment(){
       alert(roomId === '' ? 'Invigilator unassigned successfully!' : 'Invigilator assigned successfully!')
     } catch (error) {
       console.error('Assignment failed:', error)
-      alert(error.message || 'Failed to assign invigilator')
+      // Extract the error message from the response
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to assign invigilator'
+      const assignedTo = error.response?.data?.assignedTo
+      
+      if (assignedTo) {
+        alert(`${errorMessage}\nCurrently assigned to: ${assignedTo}`)
+      } else {
+        alert(errorMessage)
+      }
     } finally {
       setLoading(false)
     }
@@ -155,11 +163,16 @@ export default function InvigilatorAssignment(){
                       className="w-full border-2 border-blue-400 dark:border-blue-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-1 focus:border-blue-600 focus:outline-none disabled:bg-gray-100 dark:disabled:bg-gray-600"
                     >
                       <option value="">-- Select Room --</option>
-                      {rooms.map(room => (
-                        <option key={room.id} value={room.id}>
-                          {room.room_no} (Floor {room.floor}, Capacity: {room.capacity})
-                        </option>
-                      ))}
+                      {rooms.map(room => {
+                        const assignedInvigilator = invigilators.find(i => i.room_id === room.id && i.id !== inv.id)
+                        const isAssigned = !!assignedInvigilator
+                        return (
+                          <option key={room.id} value={room.id} disabled={isAssigned}>
+                            {room.room_no} (Floor {room.floor}, Capacity: {room.capacity})
+                            {isAssigned ? ` - Assigned to ${assignedInvigilator.name}` : ''}
+                          </option>
+                        )
+                      })}
                     </select>
                   </td>
                 </tr>

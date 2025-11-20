@@ -405,6 +405,19 @@ router.patch('/invigilators/:id/assign', authMiddleware(['admin']), async (req, 
       return res.status(404).json({ error: 'Room not found' });
     }
 
+    // Check if room is already assigned to another invigilator
+    const existingAssignment = await pool.query(
+      'SELECT id, name FROM invigilators WHERE room_id = $1 AND id != $2',
+      [room_id, id]
+    );
+    
+    if (existingAssignment.rows.length > 0) {
+      return res.status(400).json({ 
+        error: 'Room is already assigned to another invigilator',
+        assignedTo: existingAssignment.rows[0].name
+      });
+    }
+
     // Assign invigilator to room
     const result = await pool.query(
       'UPDATE invigilators SET room_id = $1 WHERE id = $2 RETURNING *',
