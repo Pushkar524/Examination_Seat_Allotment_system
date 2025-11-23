@@ -16,6 +16,14 @@ A comprehensive full-stack system for managing examination seat allotments with 
 
 ### Seat Allotment
 - **Automatic Assignment:** Intelligent algorithm distributes students across rooms based on capacity
+- **Visual Seat Selection:** Interactive grid-based seat selection (like bus booking)
+- **Smart Allotment:** Advanced pattern-based seating with anti-cheating strategies
+  - Department/Year-based student segregation
+  - Criss-cross (zigzag) pattern or linear arrangement
+  - Configurable students per bench (2 or 3)
+  - Automatic invigilator assignment
+  - Vacancy warnings for rooms without invigilators
+- **Bench-Based Layout:** Configure rooms with number of benches and seats per bench
 - **Sorted by Roll Number:** Students assigned in ascending order
 - **Manual Modifications:** Admin can update seat assignments as needed
 - **Statistics Dashboard:** Real-time allotment progress tracking
@@ -197,13 +205,35 @@ Examination_Seat_Allotment_system/
    - id, user_id, name, roll_no, date_of_birth, department, academic_year
 
 3. **rooms** - Examination room details
-   - id, room_no, capacity, floor
+   - id, room_no, capacity, floor, number_of_benches, seats_per_bench
 
 4. **invigilators** - Invigilator information
    - id, name, invigilator_id, room_id (foreign key to rooms, unique constraint)
 
 5. **seat_allotments** - Seat assignment records
    - id, student_id, room_id, seat_number, allotment_date
+
+## 🎨 Smart Allotment Patterns
+
+### Criss-Cross Pattern (Zigzag)
+Alternates students from different departments/groups to prevent cheating:
+```
+Bench 1: [CS] [IT] [CS] [IT] [CS] [IT]
+Bench 2: [IT] [CS] [IT] [CS] [IT] [CS]
+Bench 3: [CS] [IT] [CS] [IT] [CS] [IT]
+Bench 4: [IT] [CS] [IT] [CS] [IT] [CS]
+```
+**Benefits:** Maximum separation between students from same department
+
+### Linear Pattern (Strict)
+Groups students by department, fills one section before moving to next:
+```
+Bench 1: [CS] [CS] [CS] [CS] [CS] [CS]
+Bench 2: [CS] [CS] [CS] [CS] [CS] [CS]
+Bench 3: [IT] [IT] [IT] [IT] [IT] [IT]
+Bench 4: [IT] [IT] [IT] [IT] [IT] [IT]
+```
+**Benefits:** Easier to manage, students from same department sit together
 
 ## 🎯 Usage Guide
 
@@ -217,9 +247,30 @@ Examination_Seat_Allotment_system/
    - Navigate to "Invigilators" and upload invigilator CSV/Excel or add manually
 
 3. **Generate Allotment:**
-   - Go to "Seat Allotment" page
-   - Click "Generate Allotments" button
-   - System automatically assigns seats to all students
+   - **Option A - Automatic Allotment:**
+     - Go to "Seat Allotment" page
+     - Click "Generate Allotments" button
+     - System automatically assigns seats to all students
+   - **Option B - Visual Seat Selection:**
+     - Go to "Visual Seat Selection" page
+     - Select a room from the dropdown
+     - Click on seats in the grid to select them (like bus booking)
+     - Click "Next" and select students to assign
+     - Click "Assign Seats" to finalize
+   - **Option C - Smart Allotment (Recommended):**
+     - Go to "Smart Allotment" page
+     - Select segregation criteria (Department or Year of Joining)
+     - Choose seating pattern:
+       - Criss-Cross: Alternates students from different groups (prevents cheating)
+       - Linear/Strict: Fills one group completely before next
+     - Set students per bench (2 or 3)
+     - Optionally select specific rooms or use all available
+     - Click "Start Smart Allotment"
+     - System automatically:
+       - Segregates students by selected criteria
+       - Applies chosen seating pattern
+       - Assigns invigilators to rooms
+       - Shows warnings for rooms without invigilators
 
 4. **Assign Invigilators:**
    - Navigate to "Assign Invigilators" page
@@ -233,6 +284,11 @@ Examination_Seat_Allotment_system/
    - Click "Export Excel" for spreadsheet download
    - Click "Export PDF" for formatted document
    - Use "Export by Room" dropdown for room-specific PDF reports
+   - Navigate to "Reports" page to view:
+     - Student allotments by room with seat numbers
+     - Invigilator assignments with student counts
+     - Vacant room warnings (rooms without invigilators highlighted in red)
+     - Export separate CSV reports for students and invigilators
 
 ### For Students
 
@@ -250,11 +306,12 @@ Jane Smith,CS2021002,2003-08-20,Computer Science,2021-2025
 
 ### rooms.csv
 ```csv
-room_no,capacity,floor
-R101,30,1
-R102,25,1
-R201,30,2
+room_no,capacity,floor,number_of_benches,seats_per_bench
+R101,30,1,5,6
+R102,25,1,5,5
+R201,30,2,5,6
 ```
+Note: If number_of_benches and seats_per_bench are provided, capacity is calculated automatically.
 
 ### invigilators.csv
 ```csv
@@ -287,6 +344,17 @@ Prof. Maria Johnson,INV002
 - `GET /api/allotment/statistics` - Get allotment statistics
 - `PUT /api/allotment/allotments/:id` - Update seat assignment
 - `DELETE /api/allotment/allotments/:id` - Delete seat assignment
+
+### Smart Allotment (Admin Only)
+- `POST /api/smart-allotment/smart-allot` - Trigger pattern-based smart allotment
+  - Body: `{ segregate_by, students_per_bench, pattern, room_ids }`
+  - Segregates students by department or year
+  - Applies criss-cross or linear seating pattern
+  - Auto-assigns invigilators to rooms
+- `GET /api/smart-allotment/allotment-report` - Get comprehensive reports
+  - Returns student allotments with room/seat details
+  - Returns invigilator assignments with student counts
+  - Highlights vacant rooms without invigilators
 
 ### Student Endpoints
 - `GET /api/allotment/my-seat` - Get student's assigned seat

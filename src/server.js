@@ -4,6 +4,7 @@ const cors = require('cors');
 const authRoutes = require('./routes/auth');
 const uploadRoutes = require('./routes/upload');
 const allotmentRoutes = require('./routes/allotment');
+const smartAllotmentRoutes = require('./routes/smart-allotment');
 const exportRoutes = require('./routes/export');
 
 const app = express();
@@ -18,6 +19,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/auth', authRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/allotment', allotmentRoutes);
+app.use('/api/smart-allotment', smartAllotmentRoutes);
 app.use('/api/export', exportRoutes);
 
 // Health check endpoint

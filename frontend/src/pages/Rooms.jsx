@@ -20,7 +20,9 @@ export default function Rooms(){
     id: null,
     room_no: '',
     capacity: '',
-    floor: ''
+    floor: '',
+    number_of_benches: '',
+    seats_per_bench: ''
   })
   const [formError, setFormError] = useState('')
 
@@ -88,7 +90,9 @@ export default function Rooms(){
       id: null,
       room_no: '',
       capacity: '',
-      floor: ''
+      floor: '',
+      number_of_benches: '',
+      seats_per_bench: ''
     })
     setFormError('')
   }
@@ -99,7 +103,9 @@ export default function Rooms(){
       id: room.id,
       room_no: room.room_no,
       capacity: room.capacity,
-      floor: room.floor
+      floor: room.floor,
+      number_of_benches: room.number_of_benches || '',
+      seats_per_bench: room.seats_per_bench || ''
     })
     setFormError('')
   }
@@ -110,7 +116,14 @@ export default function Rooms(){
     setLoading(true)
 
     try {
-      await uploadAPI.addRoom(roomForm)
+      // Ensure integers are sent for bench configuration
+      const formData = {
+        ...roomForm,
+        capacity: roomForm.capacity ? parseInt(roomForm.capacity) : null,
+        number_of_benches: roomForm.number_of_benches ? parseInt(roomForm.number_of_benches) : null,
+        seats_per_bench: roomForm.seats_per_bench ? parseInt(roomForm.seats_per_bench) : null
+      }
+      await uploadAPI.addRoom(formData)
       await loadRooms()
       setAddModalOpen(false)
       alert('Room added successfully!')
@@ -128,7 +141,14 @@ export default function Rooms(){
 
     try {
       const { id, ...data } = roomForm
-      await uploadAPI.updateRoom(id, data)
+      // Ensure integers are sent for bench configuration
+      const formData = {
+        ...data,
+        capacity: data.capacity ? parseInt(data.capacity) : null,
+        number_of_benches: data.number_of_benches ? parseInt(data.number_of_benches) : null,
+        seats_per_bench: data.seats_per_bench ? parseInt(data.seats_per_bench) : null
+      }
+      await uploadAPI.updateRoom(id, formData)
       await loadRooms()
       setEditModalOpen(false)
       alert('Room updated successfully!')
@@ -338,6 +358,55 @@ R201,30,2`}
             />
           </div>
 
+          <div className="col-span-2 border-t pt-4">
+            <h4 className="text-sm font-semibold text-gray-700 mb-3">🎫 Seating Layout (Optional)</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Number of Benches (Rows)</label>
+                <input
+                  type="number"
+                  value={roomForm.number_of_benches}
+                  onChange={(e) => {
+                    const benches = parseInt(e.target.value) || ''
+                    const seats = parseInt(roomForm.seats_per_bench) || 0
+                    setRoomForm({
+                      ...roomForm, 
+                      number_of_benches: e.target.value,
+                      capacity: benches && seats ? benches * seats : roomForm.capacity
+                    })
+                  }}
+                  className="input w-full"
+                  min="0"
+                  placeholder="e.g., 5"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Seats per Bench</label>
+                <input
+                  type="number"
+                  value={roomForm.seats_per_bench}
+                  onChange={(e) => {
+                    const seats = parseInt(e.target.value) || ''
+                    const benches = parseInt(roomForm.number_of_benches) || 0
+                    setRoomForm({
+                      ...roomForm, 
+                      seats_per_bench: e.target.value,
+                      capacity: benches && seats ? benches * seats : roomForm.capacity
+                    })
+                  }}
+                  className="input w-full"
+                  min="0"
+                  placeholder="e.g., 6"
+                />
+              </div>
+            </div>
+            {roomForm.number_of_benches && roomForm.seats_per_bench && (
+              <p className="text-xs text-blue-600 mt-2">
+                ✓ Total capacity: {parseInt(roomForm.number_of_benches) * parseInt(roomForm.seats_per_bench)} seats
+              </p>
+            )}
+          </div>
+
           {formError && (
             <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded">
               <p className="text-red-800 text-sm">{formError}</p>
@@ -401,6 +470,55 @@ R201,30,2`}
               className="input w-full"
               placeholder="e.g., 1, Ground, First Floor"
             />
+          </div>
+
+          <div className="col-span-2 border-t pt-4">
+            <h4 className="text-sm font-semibold text-gray-700 mb-3">🎫 Seating Layout (Optional)</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Number of Benches (Rows)</label>
+                <input
+                  type="number"
+                  value={roomForm.number_of_benches}
+                  onChange={(e) => {
+                    const benches = parseInt(e.target.value) || ''
+                    const seats = parseInt(roomForm.seats_per_bench) || 0
+                    setRoomForm({
+                      ...roomForm, 
+                      number_of_benches: e.target.value,
+                      capacity: benches && seats ? benches * seats : roomForm.capacity
+                    })
+                  }}
+                  className="input w-full"
+                  min="0"
+                  placeholder="e.g., 5"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Seats per Bench</label>
+                <input
+                  type="number"
+                  value={roomForm.seats_per_bench}
+                  onChange={(e) => {
+                    const seats = parseInt(e.target.value) || ''
+                    const benches = parseInt(roomForm.number_of_benches) || 0
+                    setRoomForm({
+                      ...roomForm, 
+                      seats_per_bench: e.target.value,
+                      capacity: benches && seats ? benches * seats : roomForm.capacity
+                    })
+                  }}
+                  className="input w-full"
+                  min="0"
+                  placeholder="e.g., 6"
+                />
+              </div>
+            </div>
+            {roomForm.number_of_benches && roomForm.seats_per_bench && (
+              <p className="text-xs text-blue-600 mt-2">
+                ✓ Total capacity: {parseInt(roomForm.number_of_benches) * parseInt(roomForm.seats_per_bench)} seats
+              </p>
+            )}
           </div>
 
           {formError && (

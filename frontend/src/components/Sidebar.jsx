@@ -44,14 +44,19 @@ export default function Sidebar(){
       <div>
         <div className="text-2xl font-semibold mb-8 dark:text-white">SEAT ALLOTMENT</div>
         <div>
-          <MenuItem to="/dashboard">DASHBOARD</MenuItem>
+          <MenuItem to="/dashboard">📊 DASHBOARD</MenuItem>
           {(isAdmin || role === 'admin') && (
             <>
-              <MenuItem to="/allotment">SEAT ALLOTMENT</MenuItem>
-              <MenuItem to="/students">REGISTER STUDENTS</MenuItem>
-              <MenuItem to="/staff">REGISTER INVIGILATORS</MenuItem>
-              <MenuItem to="/rooms">ROOMS</MenuItem>
-              <MenuItem to="/assign-invigilators">ASSIGN INVIGILATORS</MenuItem>
+              <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-6 mt-4 mb-2">SEAT ALLOTMENT</div>
+              <MenuItem to="/allotment">🪑 SEAT ALLOTMENT</MenuItem>
+              <MenuItem to="/visual-seat-selection">🎫 VISUAL SELECT</MenuItem>
+              <MenuItem to="/allotment-reports">📋 REPORTS</MenuItem>
+              
+              <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-6 mt-4 mb-2">MANAGEMENT</div>
+              <MenuItem to="/students">👨‍🎓 STUDENTS</MenuItem>
+              <MenuItem to="/staff">👨‍🏫 INVIGILATORS</MenuItem>
+              <MenuItem to="/rooms">🏢 ROOMS</MenuItem>
+              <MenuItem to="/assign-invigilators">📌 ASSIGN STAFF</MenuItem>
             </>
           )}
         </div>

@@ -224,10 +224,10 @@ export const allotmentAPI = {
     });
   },
 
-  createAllotment: async (student_id, room_id, seat_number) => {
+  createAllotment: async (allotmentData) => {
     return await apiCall('/allotment/allotments', {
       method: 'POST',
-      body: JSON.stringify({ student_id, room_id, seat_number }),
+      body: JSON.stringify(allotmentData),
     });
   },
 

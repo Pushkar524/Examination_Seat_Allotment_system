@@ -155,13 +155,20 @@ router.post('/rooms/upload', authMiddleware(['admin']), upload.single('file'), a
 
       for (const room of rooms) {
         try {
+          // Calculate capacity from benches if provided
+          const capacity = room.number_of_benches && room.seats_per_bench
+            ? parseInt(room.number_of_benches) * parseInt(room.seats_per_bench)
+            : parseInt(room.capacity);
+
           await client.query(
-            `INSERT INTO rooms (room_no, capacity, floor)
-             VALUES ($1, $2, $3)
+            `INSERT INTO rooms (room_no, capacity, floor, number_of_benches, seats_per_bench)
+             VALUES ($1, $2, $3, $4, $5)
              ON CONFLICT (room_no) DO UPDATE 
              SET capacity = EXCLUDED.capacity,
-                 floor = EXCLUDED.floor`,
-            [room.room_no, room.capacity, room.floor]
+                 floor = EXCLUDED.floor,
+                 number_of_benches = EXCLUDED.number_of_benches,
+                 seats_per_bench = EXCLUDED.seats_per_bench`,
+            [room.room_no, capacity, room.floor, room.number_of_benches || 0, room.seats_per_bench || 0]
           );
           
           successCount++;
@@ -345,20 +352,31 @@ router.post('/students/add', authMiddleware(['admin']), async (req, res) => {
 
 router.post('/rooms/add', authMiddleware(['admin']), async (req, res) => {
   try {
-    const { room_no, capacity, floor } = req.body;
+    const { room_no, capacity, floor, number_of_benches, seats_per_bench } = req.body;
 
-    if (!room_no || !capacity) {
-      return res.status(400).json({ error: 'Room number and capacity are required' });
+    if (!room_no) {
+      return res.status(400).json({ error: 'Room number is required' });
+    }
+
+    // Calculate capacity from benches if provided, otherwise use provided capacity
+    const finalCapacity = number_of_benches && seats_per_bench 
+      ? parseInt(number_of_benches) * parseInt(seats_per_bench)
+      : parseInt(capacity || 0);
+
+    if (finalCapacity === 0) {
+      return res.status(400).json({ error: 'Either provide capacity OR both number_of_benches and seats_per_bench' });
     }
 
     const result = await pool.query(
-      `INSERT INTO rooms (room_no, capacity, floor)
-       VALUES ($1, $2, $3)
+      `INSERT INTO rooms (room_no, capacity, floor, number_of_benches, seats_per_bench)
+       VALUES ($1, $2, $3, $4, $5)
        ON CONFLICT (room_no) DO UPDATE 
        SET capacity = EXCLUDED.capacity,
-           floor = EXCLUDED.floor
+           floor = EXCLUDED.floor,
+           number_of_benches = EXCLUDED.number_of_benches,
+           seats_per_bench = EXCLUDED.seats_per_bench
        RETURNING *`,
-      [room_no, capacity, floor || null]
+      [room_no, finalCapacity, floor || null, number_of_benches || 0, seats_per_bench || 0]
     );
 
     res.json({ message: 'Room added successfully', room: result.rows[0] });
@@ -543,18 +561,23 @@ router.delete('/rooms/:id', authMiddleware(['admin']), async (req, res) => {
 router.put('/rooms/:id', authMiddleware(['admin']), async (req, res) => {
   try {
     const { id } = req.params;
-    const { room_no, capacity, floor } = req.body;
+    const { room_no, capacity, floor, number_of_benches, seats_per_bench } = req.body;
 
-    if (!room_no || !capacity || !floor) {
-      return res.status(400).json({ error: 'All fields are required' });
+    if (!room_no) {
+      return res.status(400).json({ error: 'Room number is required' });
     }
+
+    // Calculate capacity from benches if provided, otherwise use provided capacity
+    const finalCapacity = number_of_benches && seats_per_bench 
+      ? parseInt(number_of_benches) * parseInt(seats_per_bench)
+      : parseInt(capacity || 0);
 
     const result = await pool.query(
       `UPDATE rooms 
-       SET room_no = $1, capacity = $2, floor = $3
-       WHERE id = $4
+       SET room_no = $1, capacity = $2, floor = $3, number_of_benches = $4, seats_per_bench = $5
+       WHERE id = $6
        RETURNING *`,
-      [room_no, capacity, floor, id]
+      [room_no, finalCapacity, floor, number_of_benches || 0, seats_per_bench || 0, id]
     );
 
     if (result.rows.length === 0) {
