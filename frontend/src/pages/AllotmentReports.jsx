@@ -34,9 +34,9 @@ const AllotmentReports = () => {
     if (!reportData?.allotments) return;
     
     const csv = [
-      ['Roll No', 'Student Name', 'Department', 'Year', 'Room No', 'Floor', 'Seat Number'].join(','),
+      ['Roll No', 'Student Name', 'Department', 'Year', 'Subject', 'Room No', 'Floor', 'Seat Number'].join(','),
       ...reportData.allotments.map(a => 
-        [a.roll_no, a.student_name, a.department, a.academic_year, a.room_no, a.floor, a.seat_number].join(',')
+        [a.roll_no, a.student_name, a.department, a.academic_year, a.subject || '', a.room_no, a.floor, a.seat_number].join(',')
       )
     ].join('\n');
 
@@ -200,6 +200,7 @@ const AllotmentReports = () => {
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Name</th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Department</th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Year</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Subject</th>
                           </tr>
                         </thead>
                         <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -219,6 +220,9 @@ const AllotmentReports = () => {
                               </td>
                               <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
                                 {allotment.academic_year}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
+                                {allotment.subject || '-'}
                               </td>
                             </tr>
                           ))}

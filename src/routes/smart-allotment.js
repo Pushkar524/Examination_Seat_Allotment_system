@@ -228,6 +228,208 @@ router.post('/smart-allot', authMiddleware(['admin']), async (req, res) => {
 });
 
 /**
+ * Advanced Smart Seat Allotment
+ * Accepts explicit subjects and department->subject mapping and applies
+ * four defined seating patterns:
+ *  - 2 subjects, 2 per bench, criss-cross (zigzag)
+ *  - 2 subjects, 2 per bench, sequential (fill one subject then next)
+ *  - 2 subjects, 3 per bench (balanced alternating: S1,S2,S1 / S2,S1,S2)
+ *  - 3 subjects, 3 per bench rotational (bench offset rotation)
+ */
+router.post('/advanced', authMiddleware(['admin']), async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const {
+      subjects = [],                // ["SubjA","SubjB"] or ["SubjA","SubjB","SubjC"]
+      departmentSubjects = {},      // { DepartmentName: SubjectName }
+      students_per_bench = 2,       // 2 or 3
+      pattern = 'criss-cross',      // 'criss-cross' | 'sequential' (only meaningful for 2-per-bench)
+      room_ids = []
+    } = req.body;
+
+    if (!Array.isArray(subjects) || subjects.length === 0) {
+      return res.status(400).json({ error: 'Subjects array required' });
+    }
+    if (![2,3].includes(students_per_bench)) {
+      return res.status(400).json({ error: 'students_per_bench must be 2 or 3' });
+    }
+    if (students_per_bench === 2 && subjects.length > 2) {
+      return res.status(400).json({ error: 'For 2 per bench, only 2 subjects supported' });
+    }
+    if (students_per_bench === 3 && subjects.length < 2) {
+      return res.status(400).json({ error: 'For 3 per bench, need 2 or 3 subjects' });
+    }
+    if (students_per_bench === 3 && subjects.length === 2 && (pattern !== 'criss-cross')) {
+      // pattern ignored for this case; just note
+    }
+
+    await client.query('BEGIN');
+    await client.query('DELETE FROM seat_allotments');
+    await client.query('UPDATE invigilators SET room_id = NULL');
+
+    // Fetch all students and assign subject via mapping
+    const studentsResult = await client.query(`
+      SELECT id, roll_no, name, department, academic_year
+      FROM students
+      ORDER BY department, roll_no
+    `);
+    const rawStudents = studentsResult.rows;
+
+    // Attach subject from mapping
+    const studentsWithSubject = rawStudents.map(s => ({
+      ...s,
+      subject: departmentSubjects[s.department] || null
+    })).filter(s => s.subject && subjects.includes(s.subject));
+
+    if (studentsWithSubject.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'No students matched the provided subject mapping' });
+    }
+
+    // Build queues per subject
+    const subjectQueues = {};
+    subjects.forEach(subj => { subjectQueues[subj] = []; });
+    studentsWithSubject.forEach(stu => { subjectQueues[stu.subject].push(stu); });
+
+    // Sort each queue consistently (by roll_no then id)
+    Object.keys(subjectQueues).forEach(subj => {
+      subjectQueues[subj].sort((a,b) => {
+        if (a.roll_no < b.roll_no) return -1;
+        if (a.roll_no > b.roll_no) return 1;
+        return a.id - b.id;
+      });
+    });
+
+    // Retrieve rooms (optional subset)
+    let roomsQuery = `
+      SELECT id, room_no, capacity, number_of_benches, seats_per_bench
+      FROM rooms
+      WHERE number_of_benches > 0 AND seats_per_bench > 0
+    `;
+    let roomsParams = [];
+    if (room_ids && room_ids.length > 0) {
+      roomsQuery += ' AND id = ANY($1::int[])';
+      roomsParams = [room_ids];
+    }
+    roomsQuery += ' ORDER BY room_no';
+    const roomsResult = await client.query(roomsQuery, roomsParams);
+    const rooms = roomsResult.rows;
+    if (rooms.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'No configured rooms available' });
+    }
+
+    // Total capacity check (raw capacity)
+    const totalCapacity = rooms.reduce((sum, r) => sum + parseInt(r.capacity), 0);
+    if (studentsWithSubject.length > totalCapacity) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        error: 'Insufficient capacity for selected subjects',
+        studentsCount: studentsWithSubject.length,
+        totalCapacity
+      });
+    }
+
+    // Helper to generate seat subject sequence for a bench
+    const generateBenchSequence = (benchIndex, seatsPerBench) => {
+      // Cases
+      if (students_per_bench === 2 && subjects.length === 2) {
+        if (pattern === 'criss-cross') {
+          return benchIndex % 2 === 0
+            ? [subjects[0], subjects[1]]
+            : [subjects[1], subjects[0]];
+        }
+        // Sequential: same subject fills bench; subject chosen by remaining queue sizes
+        const firstAvailable = subjects.find(subj => subjectQueues[subj].length > 0) || subjects[0];
+        return [firstAvailable, firstAvailable];
+      }
+      if (students_per_bench === 3 && subjects.length === 2) {
+        // Alternating balanced pattern
+        return benchIndex % 2 === 0
+          ? [subjects[0], subjects[1], subjects[0]]
+          : [subjects[1], subjects[0], subjects[1]];
+      }
+      if (students_per_bench === 3 && subjects.length === 3) {
+        // Rotational tri-subject pattern
+        const offset = benchIndex % 3;
+        return [subjects[offset], subjects[(offset+1)%3], subjects[(offset+2)%3]];
+      }
+      // Fallback simplistic round-robin (should not normally hit)
+      return Array.from({ length: seatsPerBench }).map((_,i) => subjects[(benchIndex + i) % subjects.length]);
+    };
+
+    let inserted = 0;
+    let seatRecords = [];
+    let roomIndex = 0;
+
+    // Continue until all queues empty or rooms exhausted
+    const remainingStudents = () => Object.values(subjectQueues).reduce((sum, q) => sum + q.length, 0);
+
+    while (roomIndex < rooms.length && remainingStudents() > 0) {
+      const room = rooms[roomIndex];
+      const { number_of_benches, seats_per_bench } = room;
+      let seatNumberBase = 0;
+      for (let b = 0; b < number_of_benches && remainingStudents() > 0; b++) {
+        const sequence = generateBenchSequence(b, seats_per_bench).slice(0, students_per_bench);
+        for (let sIdx = 0; sIdx < sequence.length && remainingStudents() > 0; sIdx++) {
+          const subj = sequence[sIdx];
+          if (subjectQueues[subj].length === 0) continue; // skip if no student left for subject
+          const student = subjectQueues[subj].shift();
+          const seatNumber = seatNumberBase + sIdx + 1;
+          await client.query(
+            `INSERT INTO seat_allotments (student_id, room_id, seat_number, subject)
+             VALUES ($1, $2, $3, $4)`,
+            [student.id, room.id, seatNumber, subj]
+          );
+          inserted++;
+        }
+        seatNumberBase += seats_per_bench; // advance base by full bench width even if we used subset
+      }
+      roomIndex++;
+    }
+
+    // Assign invigilators to used rooms
+    const usedRoomIds = rooms.slice(0, roomIndex).map(r => r.id);
+    const invRes = await client.query(`
+      SELECT id, name, invigilator_id FROM invigilators WHERE room_id IS NULL ORDER BY name
+    `);
+    const invigilators = invRes.rows;
+    let assignedInvigilators = 0;
+    for (let i = 0; i < usedRoomIds.length && i < invigilators.length; i++) {
+      await client.query('UPDATE invigilators SET room_id = $1 WHERE id = $2', [usedRoomIds[i], invigilators[i].id]);
+      assignedInvigilators++;
+    }
+
+    await client.query('COMMIT');
+
+    // Build subject counts after allocation
+    const subjectCounts = {};
+    subjects.forEach(subj => subjectCounts[subj] = 0);
+    studentsWithSubject.forEach(stu => { if (stu.subject) subjectCounts[stu.subject]++; });
+    const remaining = remainingStudents();
+
+    res.json({
+      message: 'Advanced smart allotment completed',
+      subjects,
+      studentsPerBench: students_per_bench,
+      patternApplied: pattern,
+      totalStudentsMatched: studentsWithSubject.length,
+      seatsInserted: inserted,
+      roomsUsed: usedRoomIds.length,
+      invigilatorsAssigned: assignedInvigilators,
+      pendingUnseated: remaining,
+      subjectCounts
+    });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Advanced smart allotment error:', err);
+    res.status(500).json({ error: 'Failed advanced smart allotment' });
+  } finally {
+    client.release();
+  }
+});
+
+/**
  * Get allotment statistics with invigilator warnings
  */
 router.get('/allotment-report', authMiddleware(['admin']), async (req, res) => {
@@ -237,6 +439,7 @@ router.get('/allotment-report', authMiddleware(['admin']), async (req, res) => {
       SELECT 
         sa.id,
         sa.seat_number,
+        sa.subject,
         s.name as student_name,
         s.roll_no,
         s.department,

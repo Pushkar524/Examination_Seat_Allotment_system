@@ -8,6 +8,12 @@ const SmartAllotment = ({ embedded = false }) => {
     pattern: 'criss-cross',
     room_ids: []
   });
+  // Advanced mode state
+  const [advancedMode, setAdvancedMode] = useState(false);
+  const [subjectCount, setSubjectCount] = useState(2); // 2 or 3
+  const [subjectNames, setSubjectNames] = useState(['','']); // dynamic length
+  const [departments, setDepartments] = useState([]);
+  const [departmentSubjects, setDepartmentSubjects] = useState({});
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
@@ -15,7 +21,21 @@ const SmartAllotment = ({ embedded = false }) => {
 
   useEffect(() => {
     fetchRooms();
+    fetchDepartments();
   }, []);
+
+  useEffect(() => {
+    // Adjust subjectNames array length when subjectCount changes
+    setSubjectNames(prev => {
+      const copy = [...prev];
+      if (subjectCount > copy.length) {
+        while (copy.length < subjectCount) copy.push('');
+      } else if (subjectCount < copy.length) {
+        copy.length = subjectCount;
+      }
+      return copy;
+    });
+  }, [subjectCount]);
 
   const fetchRooms = async () => {
     try {
@@ -23,6 +43,17 @@ const SmartAllotment = ({ embedded = false }) => {
       setRooms(response.data.filter(r => r.number_of_benches > 0));
     } catch (err) {
       console.error('Error fetching rooms:', err);
+    }
+  };
+
+  const fetchDepartments = async () => {
+    try {
+      const res = await uploadAPI.get('/students');
+      const uniq = Array.from(new Set(res.data.map(s => s.department))).filter(Boolean);
+      setDepartments(uniq);
+      // Initialize mapping default to first subject (index 0) later
+    } catch (err) {
+      console.error('Error fetching students/departments:', err);
     }
   };
 
@@ -76,10 +107,58 @@ const SmartAllotment = ({ embedded = false }) => {
     }
   };
 
+  const handleAdvancedSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    if (!localStorage.getItem('token')) {
+      setLoading(false);
+      setError('Session expired. Please login again.');
+      return;
+    }
+    if (advancedMode && departments.length === 0) {
+      setLoading(false);
+      setError('No departments found. Upload students before subject-based allotment.');
+      return;
+    }
+    try {
+      const subjects = subjectNames.map(s => s.trim()).filter(Boolean);
+      if (subjects.length !== subjectCount) throw new Error('Please provide all subject names');
+      if (subjects.some((s,i) => subjects.indexOf(s) !== i)) throw new Error('Duplicate subject names found');
+      const mapping = {};
+      departments.forEach(dep => {
+        mapping[dep] = departmentSubjects[dep] || subjects[0];
+      });
+      const payload = {
+        subjects,
+        departmentSubjects: mapping,
+        students_per_bench: config.students_per_bench,
+        pattern: config.pattern,
+        room_ids: config.room_ids.length > 0 ? config.room_ids : undefined
+      };
+      const response = await fetch('http://localhost:3000/api/smart-allotment/advanced', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(payload)
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Advanced allotment failed');
+      setResult(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const content = (
     <>
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={advancedMode ? handleAdvancedSubmit : handleSubmit}>
             {/* Segregation Criteria */}
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -98,8 +177,17 @@ const SmartAllotment = ({ embedded = false }) => {
               </p>
             </div>
 
+            {/* Mode Toggle */}
+            <div className="mb-6 flex items-center justify-between">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Mode:</span>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setAdvancedMode(false)} className={`px-3 py-2 rounded text-sm border ${!advancedMode ? 'bg-blue-600 text-white border-blue-600' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600'}`}>Legacy</button>
+                <button type="button" onClick={() => setAdvancedMode(true)} className={`px-3 py-2 rounded text-sm border ${advancedMode ? 'bg-blue-600 text-white border-blue-600' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600'}`}>Subject-Based</button>
+              </div>
+            </div>
+
             {/* Seating Pattern - Only show for 2 students per bench */}
-            {config.students_per_bench === 2 && (
+            {config.students_per_bench === 2 && !advancedMode && (
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Seating Pattern (2 Students/Bench)
@@ -152,7 +240,7 @@ const SmartAllotment = ({ embedded = false }) => {
             )}
 
             {/* Info for 3 students per bench */}
-            {config.students_per_bench === 3 && (
+            {config.students_per_bench === 3 && !advancedMode && (
               <div className="mb-6">
                 <div className="p-4 bg-purple-50 dark:bg-purple-900 border-2 border-purple-200 dark:border-purple-700 rounded-lg">
                   <div className="font-semibold text-purple-900 dark:text-purple-200 mb-2">
@@ -202,6 +290,57 @@ const SmartAllotment = ({ embedded = false }) => {
               </div>
             </div>
 
+            {/* Advanced Subject Section */}
+            {advancedMode && (
+              <div className="mb-6 border border-gray-300 dark:border-gray-600 rounded-lg p-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Subjects Configuration</label>
+                {/* Subject count selector */}
+                <div className="flex gap-4 mb-4">
+                  {[2,3].map(count => (
+                    <button key={count} type="button" onClick={() => setSubjectCount(count)} className={`flex-1 py-2 border rounded ${subjectCount === count ? 'bg-blue-600 text-white border-blue-600' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600'}`}>{count} Subjects</button>
+                  ))}
+                </div>
+                {/* Subject names */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                  {subjectNames.map((name, idx) => (
+                    <input
+                      key={idx}
+                      type="text"
+                      placeholder={`Subject ${idx+1}`}
+                      value={name}
+                      onChange={(e) => {
+                        const copy = [...subjectNames];
+                        copy[idx] = e.target.value;
+                        setSubjectNames(copy);
+                      }}
+                      className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-sm"
+                    />
+                  ))}
+                </div>
+                {/* Department mapping */}
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {departments.map(dep => (
+                    <div key={dep} className="flex items-center gap-2">
+                      <span className="flex-1 text-sm text-gray-700 dark:text-gray-300">{dep}</span>
+                      <select
+                        value={departmentSubjects[dep] || subjectNames[0] || ''}
+                        onChange={(e) => setDepartmentSubjects({ ...departmentSubjects, [dep]: e.target.value })}
+                        className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700"
+                      >
+                        {subjectNames.filter(n => n.trim()).map(n => (
+                          <option key={n} value={n}>{n}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+                  {departments.length === 0 && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400">No departments found. Upload students first.</p>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Simple mapping: each department tagged to one subject.</p>
+              </div>
+            )}
+
             {/* Room Selection */}
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -236,11 +375,17 @@ const SmartAllotment = ({ embedded = false }) => {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || (advancedMode && departments.length === 0) || (advancedMode && subjectNames.some(n => !n.trim()))}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Allocating Seats...' : 'Start Smart Allotment'}
+              {loading ? 'Allocating Seats...' : advancedMode ? 'Run Subject-Based Allotment' : 'Start Smart Allotment'}
             </button>
+            {advancedMode && departments.length === 0 && (
+              <p className="mt-2 text-xs text-red-600 dark:text-red-400">Upload students to enable subject-based allotment.</p>
+            )}
+            {advancedMode && subjectNames.some(n => !n.trim()) && (
+              <p className="mt-2 text-xs text-orange-600 dark:text-orange-400">Fill all subject name fields.</p>
+            )}
           </form>
         </div>
 
@@ -260,11 +405,11 @@ const SmartAllotment = ({ embedded = false }) => {
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="text-gray-600 dark:text-gray-400">Total Students:</span>
-                <span className="ml-2 font-semibold text-gray-900 dark:text-white">{result.totalStudents}</span>
+                <span className="ml-2 font-semibold text-gray-900 dark:text-white">{result.totalStudents || result.totalStudentsMatched}</span>
               </div>
               <div>
                 <span className="text-gray-600 dark:text-gray-400">Allotted Seats:</span>
-                <span className="ml-2 font-semibold text-gray-900 dark:text-white">{result.allottedSeats}</span>
+                <span className="ml-2 font-semibold text-gray-900 dark:text-white">{result.allottedSeats || result.seatsInserted}</span>
               </div>
               <div>
                 <span className="text-gray-600 dark:text-gray-400">Rooms Used:</span>
@@ -272,15 +417,19 @@ const SmartAllotment = ({ embedded = false }) => {
               </div>
               <div>
                 <span className="text-gray-600 dark:text-gray-400">Pattern:</span>
-                <span className="ml-2 font-semibold text-gray-900 dark:text-white capitalize">{result.pattern}</span>
+                <span className="ml-2 font-semibold text-gray-900 dark:text-white capitalize">{result.pattern || result.patternApplied}</span>
               </div>
               <div>
                 <span className="text-gray-600 dark:text-gray-400">Students per Bench:</span>
-                <span className="ml-2 font-semibold text-gray-900 dark:text-white">{result.studentsPerBench}</span>
+                <span className="ml-2 font-semibold text-gray-900 dark:text-white">{result.studentsPerBench || result.studentsPerBench}</span>
               </div>
               <div>
-                <span className="text-gray-600 dark:text-gray-400">Segregated By:</span>
-                <span className="ml-2 font-semibold text-gray-900 dark:text-white capitalize">{result.segregatedBy}</span>
+                {result.segregatedBy && (
+                  <>
+                    <span className="text-gray-600 dark:text-gray-400">Segregated By:</span>
+                    <span className="ml-2 font-semibold text-gray-900 dark:text-white capitalize">{result.segregatedBy}</span>
+                  </>
+                )}
               </div>
               <div>
                 <span className="text-gray-600 dark:text-gray-400">Invigilators Assigned:</span>
@@ -290,6 +439,18 @@ const SmartAllotment = ({ embedded = false }) => {
                 <div>
                   <span className="text-red-600 dark:text-red-400">⚠️ Vacant Rooms:</span>
                   <span className="ml-2 font-semibold text-red-700 dark:text-red-300">{result.vacantRooms}</span>
+                </div>
+              )}
+              {result.subjectCounts && (
+                <div className="col-span-2 mt-2">
+                  <span className="text-gray-600 dark:text-gray-400">Subject Distribution:</span>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {Object.entries(result.subjectCounts).map(([subj,count]) => (
+                      <span key={subj} className="px-3 py-1 bg-white dark:bg-gray-700 rounded-full text-sm font-medium text-gray-900 dark:text-white">
+                        {subj}: {count}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
