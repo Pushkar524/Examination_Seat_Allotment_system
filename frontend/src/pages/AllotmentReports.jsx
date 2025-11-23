@@ -4,6 +4,7 @@ import { uploadAPI } from '../services/api';
 const AllotmentReports = () => {
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('students'); // 'students' or 'invigilators'
 
   useEffect(() => {
@@ -12,6 +13,7 @@ const AllotmentReports = () => {
 
   const fetchReports = async () => {
     setLoading(true);
+    setError(null);
     try {
       const response = await fetch('http://localhost:3000/api/smart-allotment/allotment-report', {
         headers: {
@@ -19,12 +21,16 @@ const AllotmentReports = () => {
         }
       });
       
-      if (!response.ok) throw new Error('Failed to fetch reports');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to fetch reports');
+      }
       
       const data = await response.json();
       setReportData(data);
     } catch (err) {
       console.error('Error fetching reports:', err);
+      setError(err.message || 'Failed to load reports. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -78,10 +84,44 @@ const AllotmentReports = () => {
     );
   }
 
-  if (!reportData) {
+  if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen dark:bg-gray-900">
-        <div className="text-gray-600 dark:text-gray-400">No report data available</div>
+      <div className="flex flex-col items-center justify-center min-h-screen dark:bg-gray-900 p-6">
+        <div className="bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-700 rounded-lg p-6 max-w-md">
+          <div className="flex items-center mb-4">
+            <svg className="h-8 w-8 text-red-500 dark:text-red-400 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h2 className="text-xl font-bold text-red-800 dark:text-red-200">Error Loading Reports</h2>
+          </div>
+          <p className="text-red-700 dark:text-red-300 mb-4">{error}</p>
+          <button
+            onClick={fetchReports}
+            className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!reportData || !reportData.allotments || reportData.allotments.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen dark:bg-gray-900 p-6">
+        <div className="bg-yellow-50 dark:bg-yellow-900 border border-yellow-200 dark:border-yellow-700 rounded-lg p-6 max-w-md text-center">
+          <div className="text-6xl mb-4">📋</div>
+          <h2 className="text-xl font-bold text-yellow-800 dark:text-yellow-200 mb-2">No Reports Available</h2>
+          <p className="text-yellow-700 dark:text-yellow-300 mb-4">
+            No seat allotments have been generated yet. Please generate seat allotments first.
+          </p>
+          <button
+            onClick={fetchReports}
+            className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg transition"
+          >
+            Refresh
+          </button>
+        </div>
       </div>
     );
   }
