@@ -215,6 +215,8 @@ export default function Rooms(){
                 <th className="border dark:border-gray-600 p-3 text-left dark:text-white">ROOM NO</th>
                 <th className="border dark:border-gray-600 p-3 text-left dark:text-white">FLOOR</th>
                 <th className="border dark:border-gray-600 p-3 text-left dark:text-white">CAPACITY</th>
+                <th className="border dark:border-gray-600 p-3 text-left dark:text-white">BENCHES</th>
+                <th className="border dark:border-gray-600 p-3 text-left dark:text-white">SEATS</th>
                 {isAdmin && (
                   <th className="border dark:border-gray-600 p-3 text-left dark:text-white">ACTIONS</th>
                 )}
@@ -226,6 +228,8 @@ export default function Rooms(){
                   <td className="border dark:border-gray-600 p-2 font-medium dark:text-gray-200">{r.room_no}</td>
                   <td className="border dark:border-gray-600 p-2 dark:text-gray-200">{r.floor}</td>
                   <td className="border dark:border-gray-600 p-2 dark:text-gray-200">{r.capacity}</td>
+                  <td className="border dark:border-gray-600 p-2 dark:text-gray-200">{r.number_of_benches || '-'}</td>
+                  <td className="border dark:border-gray-600 p-2 dark:text-gray-200">{r.seats_per_bench || '-'}</td>
                   {isAdmin && (
                     <td className="border dark:border-gray-600 p-2">
                       <div className="flex gap-2 justify-center">
@@ -247,7 +251,7 @@ export default function Rooms(){
                 </tr>
               ))}
               {rooms.length===0 && !loading && (
-                <tr className="h-12"><td className="p-4 text-center text-gray-500 dark:text-gray-400" colSpan={isAdmin ? 4 : 3}>No rooms yet. Upload a file to add rooms.</td></tr>
+                <tr className="h-12"><td className="p-4 text-center text-gray-500 dark:text-gray-400" colSpan={isAdmin ? 6 : 5}>No rooms yet. Upload a file to add rooms.</td></tr>
               )}
             </tbody>
           </table>

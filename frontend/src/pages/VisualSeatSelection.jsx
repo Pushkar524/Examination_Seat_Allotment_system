@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import SeatGrid from '../components/SeatGrid'
+import Modal from '../components/Modal'
 import { uploadAPI, allotmentAPI } from '../services/api'
 
 /**
@@ -20,8 +21,21 @@ export default function VisualSeatSelection() {
   const [selectedStudents, setSelectedStudents] = useState([])
   const [occupiedSeats, setOccupiedSeats] = useState([])
   const [loading, setLoading] = useState(false)
-  const [searchTerm, setSearchTerm] = useState('')
+  const [searchTerm, setSearchTerm] = useState('') // For student search
   const [step, setStep] = useState(1) // 1: Select seats, 2: Select students
+  
+  // Search and filter state for allotment list
+  const [allotmentSearchTerm, setAllotmentSearchTerm] = useState('')
+  const [courseFilter, setCourseFilter] = useState('')
+  const [roomFilter, setRoomFilter] = useState('')
+  
+  // Edit modal state
+  const [editModalOpen, setEditModalOpen] = useState(false)
+  const [editForm, setEditForm] = useState({
+    id: null,
+    room_id: '',
+    seat_number: ''
+  })
 
   // Load initial data
   useEffect(() => {
@@ -162,6 +176,46 @@ export default function VisualSeatSelection() {
     setStep(1)
   }
 
+  // Open edit modal
+  function openEditModal(allotment) {
+    setEditForm({
+      id: allotment.id,
+      room_id: rooms.find(r => r.room_no === allotment.room_no)?.id || '',
+      seat_number: allotment.seat_number
+    })
+    setEditModalOpen(true)
+  }
+
+  // Handle edit submission
+  async function handleEditAllotment(e) {
+    e.preventDefault()
+    
+    if (!editForm.room_id || !editForm.seat_number) {
+      alert('Please fill all fields')
+      return
+    }
+
+    try {
+      setLoading(true)
+      await allotmentAPI.updateAllotment(
+        editForm.id,
+        editForm.room_id,
+        parseInt(editForm.seat_number)
+      )
+      setEditModalOpen(false)
+      await loadData()
+      if (selectedRoom) {
+        await loadOccupiedSeats(selectedRoom.id)
+      }
+      alert('Seat allotment updated successfully!')
+    } catch (error) {
+      console.error('Update failed:', error)
+      alert(error.message || 'Failed to update allotment')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   if (!isAdmin) {
     return (
       <div className="max-w-4xl mx-auto p-6">
@@ -172,6 +226,22 @@ export default function VisualSeatSelection() {
     )
   }
 
+  // Filter allotments based on search and filters
+  const filteredAllotments = allotments.filter(a => {
+    const matchesSearch = !allotmentSearchTerm || 
+      a.roll_no?.toLowerCase().includes(allotmentSearchTerm.toLowerCase()) ||
+      a.student_name?.toLowerCase().includes(allotmentSearchTerm.toLowerCase())
+    
+    const matchesCourse = !courseFilter || a.department?.includes(courseFilter)
+    const matchesRoom = !roomFilter || a.room_no?.includes(roomFilter)
+    
+    return matchesSearch && matchesCourse && matchesRoom
+  })
+
+  // Get unique values for filter dropdowns
+  const uniqueCourses = [...new Set(allotments.map(a => a.department).filter(c => c))]
+  const uniqueRooms = [...new Set(allotments.map(a => a.room_no).filter(r => r))]
+
   return (
     <div className="max-w-7xl mx-auto p-6">
       {/* Header */}
@@ -180,7 +250,7 @@ export default function VisualSeatSelection() {
           🎫 Visual Seat Selection
         </h1>
         <p className="text-gray-600 dark:text-gray-300">
-          Select seats visually and assign students (like booking bus tickets)
+          Select seats visually and assign students - then view all allotments below
         </p>
       </div>
 
@@ -368,6 +438,181 @@ export default function VisualSeatSelection() {
           </p>
         </div>
       )}
+
+      {/* Allotment List Section */}
+      {allotments.length > 0 && (
+        <div className="mt-8">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border dark:border-gray-700">
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">
+              📋 All Seat Allotments
+            </h2>
+
+            {/* Search and Filter Bar */}
+            <div className="grid grid-cols-3 gap-4 mb-4">
+              <input 
+                value={allotmentSearchTerm} 
+                onChange={e => setAllotmentSearchTerm(e.target.value)} 
+                placeholder="🔍 Search by Student Name or Roll No" 
+                className="border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2 focus:border-blue-500 focus:outline-none"
+              />
+              <select 
+                value={courseFilter} 
+                onChange={e => setCourseFilter(e.target.value)} 
+                className="border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2 focus:border-blue-500 focus:outline-none"
+              >
+                <option value="">All Departments</option>
+                {uniqueCourses.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <select 
+                value={roomFilter} 
+                onChange={e => setRoomFilter(e.target.value)} 
+                className="border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2 focus:border-blue-500 focus:outline-none"
+              >
+                <option value="">All Rooms</option>
+                {uniqueRooms.map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+            </div>
+
+            {/* Allotments Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-gray-100 dark:bg-gray-700">
+                    <th className="border dark:border-gray-600 p-3 text-left font-semibold dark:text-white">Roll No</th>
+                    <th className="border dark:border-gray-600 p-3 text-left font-semibold dark:text-white">Student Name</th>
+                    <th className="border dark:border-gray-600 p-3 text-left font-semibold dark:text-white">Department</th>
+                    <th className="border dark:border-gray-600 p-3 text-left font-semibold dark:text-white">Room No</th>
+                    <th className="border dark:border-gray-600 p-3 text-left font-semibold dark:text-white">Floor</th>
+                    <th className="border dark:border-gray-600 p-3 text-left font-semibold dark:text-white">Seat No</th>
+                    {isAdmin && <th className="border dark:border-gray-600 p-3 text-center font-semibold dark:text-white">Actions</th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredAllotments.length === 0 ? (
+                    <tr className="h-20">
+                      <td className="border dark:border-gray-600 p-4 text-center text-gray-500 dark:text-gray-400" colSpan={isAdmin ? 7 : 6}>
+                        No matching allotments found
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredAllotments.map(a => (
+                      <tr key={a.id} className="h-12 hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors">
+                        <td className="border dark:border-gray-600 p-2 font-mono dark:text-gray-200">{a.roll_no}</td>
+                        <td className="border dark:border-gray-600 p-2 font-medium dark:text-gray-200">{a.student_name}</td>
+                        <td className="border dark:border-gray-600 p-2 dark:text-gray-200">{a.department}</td>
+                        <td className="border dark:border-gray-600 p-2">
+                          <span className="bg-cyan-100 dark:bg-cyan-900 px-2 py-1 rounded text-cyan-800 dark:text-cyan-200 font-semibold">
+                            {a.room_no}
+                          </span>
+                        </td>
+                        <td className="border dark:border-gray-600 p-2 dark:text-gray-200">{a.floor}</td>
+                        <td className="border dark:border-gray-600 p-2">
+                          <span className="bg-purple-100 dark:bg-purple-900 px-2 py-1 rounded text-purple-800 dark:text-purple-200 font-semibold">
+                            {a.seat_number}
+                          </span>
+                        </td>
+                        {isAdmin && (
+                          <td className="border dark:border-gray-600 p-2">
+                            <div className="flex gap-2 justify-center">
+                              <button 
+                                onClick={() => openEditModal(a)}
+                                className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-sm transition-colors"
+                              >
+                                Edit
+                              </button>
+                              <button 
+                                onClick={async () => {
+                                  if (window.confirm('Delete this allotment?')) {
+                                    try {
+                                      await allotmentAPI.deleteAllotment(a.id)
+                                      await loadData()
+                                      if (selectedRoom) {
+                                        await loadOccupiedSeats(selectedRoom.id)
+                                      }
+                                      alert('Allotment deleted successfully')
+                                    } catch (error) {
+                                      alert(error.message || 'Failed to delete')
+                                    }
+                                  }
+                                }}
+                                className="px-3 py-1 bg-rose-500 hover:bg-rose-600 text-white rounded text-sm transition-colors"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
+              Showing {filteredAllotments.length} of {allotments.length} total allotments
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Allotment Modal */}
+      <Modal open={editModalOpen} title="✏️ Edit Seat Allotment" onClose={() => setEditModalOpen(false)}>
+        <form onSubmit={handleEditAllotment} className="space-y-4">
+          <div className="bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-700 rounded-lg p-3 mb-4">
+            <p className="text-sm text-blue-800 dark:text-blue-200">
+              <strong>ℹ️ Info:</strong> You can change the room and seat number for this allotment.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Select Room *</label>
+            <select
+              value={editForm.room_id}
+              onChange={(e) => setEditForm({...editForm, room_id: e.target.value})}
+              className="w-full border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2 focus:border-blue-500 focus:outline-none"
+              required
+            >
+              <option value="">-- Select Room --</option>
+              {rooms.map(room => (
+                <option key={room.id} value={room.id}>
+                  {room.room_no} - Floor {room.floor} (Capacity: {room.capacity})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Seat Number *</label>
+            <input
+              type="number"
+              value={editForm.seat_number}
+              onChange={(e) => setEditForm({...editForm, seat_number: e.target.value})}
+              className="w-full border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2 focus:border-blue-500 focus:outline-none"
+              placeholder="Enter seat number"
+              min="1"
+              required
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-4 border-t dark:border-gray-600">
+            <button 
+              type="button" 
+              onClick={() => setEditModalOpen(false)} 
+              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white rounded-lg transition duration-200"
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit"
+              disabled={loading}
+              className="px-6 py-2 bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 disabled:from-gray-400 disabled:to-gray-500 text-white rounded-lg shadow-lg transition duration-200 flex items-center gap-2 font-semibold"
+            >
+              <span>✓</span> {loading ? 'Updating...' : 'Update Allotment'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   )
 }
