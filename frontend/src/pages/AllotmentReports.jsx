@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { allotmentAPI, exportAPI } from '../services/api';
 
 const AllotmentReports = () => {
@@ -90,6 +90,110 @@ const AllotmentReports = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Export filtered data as CSV
+  const exportFilteredCSV = () => {
+    if (filteredAllotments.length === 0) {
+      alert('No data to export');
+      return;
+    }
+
+    const headers = ['Roll No', 'Student Name', 'Department', 'Room No', 'Floor', 'Seat No'];
+    const rows = filteredAllotments.map(a => [
+      a.roll_no,
+      a.student_name,
+      a.department,
+      a.room_no,
+      a.floor,
+      a.seat_number
+    ]);
+
+    const csv = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    
+    const fileName = departmentFilter && roomFilter 
+      ? `${departmentFilter}_${roomFilter}_allotments.csv`
+      : departmentFilter 
+        ? `${departmentFilter}_allotments.csv`
+        : roomFilter
+          ? `${roomFilter}_allotments.csv`
+          : 'filtered_allotments.csv';
+    
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  };
+
+  // Export department-wise CSV
+  const exportDepartmentCSV = (dept) => {
+    const deptAllotments = groupedByDepartment[dept];
+    if (!deptAllotments || deptAllotments.length === 0) return;
+
+    const headers = ['Roll No', 'Student Name', 'Department', 'Room No', 'Floor', 'Seat No'];
+    const rows = deptAllotments.map(a => [
+      a.roll_no,
+      a.student_name,
+      a.department,
+      a.room_no,
+      a.floor,
+      a.seat_number
+    ]);
+
+    const csv = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${dept}_allotments.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  };
+
+  // Export room-wise CSV
+  const exportRoomCSV = (room) => {
+    const roomAllotments = groupedByRoom[room];
+    if (!roomAllotments || roomAllotments.length === 0) return;
+
+    const headers = ['Roll No', 'Student Name', 'Department', 'Room No', 'Floor', 'Seat No'];
+    const rows = roomAllotments.map(a => [
+      a.roll_no,
+      a.student_name,
+      a.department,
+      a.room_no,
+      a.floor,
+      a.seat_number
+    ]);
+
+    const csv = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${room}_allotments.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
   };
 
   if (loading) {
@@ -235,17 +339,25 @@ const AllotmentReports = () => {
         {(departmentFilter || roomFilter) ? (
           // Filtered view - single table
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-            <div className="p-4 border-b dark:border-gray-700">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                {departmentFilter && roomFilter 
-                  ? `${departmentFilter} - ${roomFilter}`
-                  : departmentFilter 
-                    ? `Department: ${departmentFilter}`
-                    : `Room: ${roomFilter}`}
-              </h2>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                {filteredAllotments.length} student(s)
-              </p>
+            <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                  {departmentFilter && roomFilter 
+                    ? `${departmentFilter} - ${roomFilter}`
+                    : departmentFilter 
+                      ? `Department: ${departmentFilter}`
+                      : `Room: ${roomFilter}`}
+                </h2>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  {filteredAllotments.length} student(s)
+                </p>
+              </div>
+              <button
+                onClick={exportFilteredCSV}
+                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition flex items-center gap-2 text-sm"
+              >
+                <span>📥</span> Export CSV
+              </button>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -294,10 +406,22 @@ const AllotmentReports = () => {
                 {Object.keys(groupedByDepartment).sort().map(dept => (
                   <div key={dept} className="border dark:border-gray-700 rounded-lg p-4">
                     <div className="flex justify-between items-center mb-2">
-                      <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{dept}</h3>
-                      <span className="bg-blue-100 dark:bg-blue-900 px-3 py-1 rounded-full text-blue-800 dark:text-blue-200 text-sm font-semibold">
-                        {groupedByDepartment[dept].length} students
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{dept}</h3>
+                        <span className="bg-blue-100 dark:bg-blue-900 px-3 py-1 rounded-full text-blue-800 dark:text-blue-200 text-sm font-semibold">
+                          {groupedByDepartment[dept].length} students
+                        </span>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          exportDepartmentCSV(dept);
+                        }}
+                        className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm transition flex items-center gap-1"
+                        title="Export to CSV"
+                      >
+                        <span>📥</span> Export
+                      </button>
                     </div>
                     <button
                       onClick={() => setDepartmentFilter(dept)}
@@ -318,18 +442,30 @@ const AllotmentReports = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {Object.keys(groupedByRoom).sort().map(room => (
                   <div key={room} className="border dark:border-gray-700 rounded-lg p-4 hover:shadow-lg transition">
-                    <div className="flex justify-between items-center mb-2">
+                    <div className="flex justify-between items-center mb-3">
                       <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{room}</h3>
                       <span className="bg-purple-100 dark:bg-purple-900 px-3 py-1 rounded-full text-purple-800 dark:text-purple-200 text-sm font-semibold">
                         {groupedByRoom[room].length}
                       </span>
                     </div>
-                    <button
-                      onClick={() => setRoomFilter(room)}
-                      className="text-purple-600 dark:text-purple-400 hover:underline text-sm"
-                    >
-                      View Details →
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setRoomFilter(room)}
+                        className="flex-1 text-purple-600 dark:text-purple-400 hover:underline text-sm text-left"
+                      >
+                        View Details →
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          exportRoomCSV(room);
+                        }}
+                        className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs transition"
+                        title="Export to CSV"
+                      >
+                        📥
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
