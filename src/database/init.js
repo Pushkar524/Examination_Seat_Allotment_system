@@ -40,7 +40,10 @@ const initDatabase = async () => {
         id SERIAL PRIMARY KEY,
         room_no VARCHAR(50) UNIQUE NOT NULL,
         capacity INTEGER NOT NULL,
-        floor VARCHAR(20) NOT NULL,
+        floor VARCHAR(20),
+        building VARCHAR(100),
+        number_of_benches INTEGER DEFAULT 0,
+        seats_per_bench INTEGER DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
@@ -52,7 +55,11 @@ const initDatabase = async () => {
         id SERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
         invigilator_id VARCHAR(50) UNIQUE NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        room_id INTEGER REFERENCES rooms(id) ON DELETE SET NULL,
+        department VARCHAR(100),
+        contact_number VARCHAR(20),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT unique_room_assignment UNIQUE (room_id)
       );
     `);
     console.log('✓ Invigilators table created');
@@ -64,11 +71,18 @@ const initDatabase = async () => {
         student_id INTEGER REFERENCES students(id) ON DELETE CASCADE,
         room_id INTEGER REFERENCES rooms(id) ON DELETE CASCADE,
         seat_number INTEGER NOT NULL,
+        subject VARCHAR(100),
         allotment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(room_id, seat_number)
       );
     `);
     console.log('✓ Seat allotments table created');
+
+    // Create index for subject-based queries
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_seat_allotments_subject ON seat_allotments(subject);
+    `);
+    console.log('✓ Index created on seat_allotments.subject');
 
     // Create default admin user
     const hashedPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD || 'admin123', 10);
