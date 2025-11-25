@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { allotmentAPI, exportAPI } from '../services/api';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 const AllotmentReports = () => {
   const [allotments, setAllotments] = useState([]);
@@ -216,8 +216,8 @@ const AllotmentReports = () => {
     doc.text(`Total Students: ${deptAllotments.length}`, 105, 32, { align: 'center' });
     doc.text(`Generated: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 105, 38, { align: 'center' });
 
-    // Add table
-    doc.autoTable({
+    // Add table using autoTable
+    autoTable(doc, {
       startY: 45,
       head: [['Roll No', 'Student Name', 'Department', 'Room No', 'Floor', 'Seat No']],
       body: deptAllotments.map(a => [
@@ -255,8 +255,8 @@ const AllotmentReports = () => {
     doc.text(`Total Students: ${roomAllotments.length}`, 105, 32, { align: 'center' });
     doc.text(`Generated: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 105, 38, { align: 'center' });
 
-    // Add table
-    doc.autoTable({
+    // Add table using autoTable
+    autoTable(doc, {
       startY: 45,
       head: [['Roll No', 'Student Name', 'Department', 'Room No', 'Floor', 'Seat No']],
       body: roomAllotments.map(a => [
