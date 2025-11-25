@@ -1,5 +1,6 @@
 import React from 'react'
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
+import { useAuth } from './context/AuthContext'
 import Sidebar from './components/Sidebar'
 import Header from './components/Header'
 import Login from './pages/Login'
@@ -24,6 +25,13 @@ export default function App(){
 }
 
 function ProtectedApp(){
+  const { role } = useAuth()
+  
+  // If no role (not logged in), redirect to login
+  if (!role) {
+    return <Navigate to="/login" replace />
+  }
+  
   return (
     <div className="flex">
       <Sidebar />
