@@ -1,6 +1,8 @@
-name,invigilator_id
-Dr. Robert Smith,INV001
-Prof. Maria Johnson,INV002
-Dr. James Williams,INV003
-Prof. Patricia Brown,INV004
-Dr. Michael Davis,INV005
+name,invigilator_id,room_id,department,contact_number
+Dr. Robert Smith,INV001,R101,Computer Science,9876543210
+Prof. Maria Johnson,INV002,R102,Mathematics,9876543211
+Dr. James Williams,INV003,R201,Physics,9876543212
+Prof. Patricia Brown,INV004,R202,Chemistry,9876543213
+Dr. Michael Davis,INV005,R203,Biology,9876543214
+Dr. Sarah Wilson,INV006,R301,English,9876543215
+Prof. David Martinez,INV007,R302,History,9876543216

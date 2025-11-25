@@ -1,7 +1,9 @@
-room_no,capacity,floor,number_of_benches,seats_per_bench
-R101,30,1,5,6
-R102,24,1,4,6
-R103,30,1,5,6
-R201,35,2,7,5
-R202,30,2,5,6
-R203,28,2,7,4
+room_no,capacity,floor,building,number_of_benches,seats_per_bench
+R101,30,1,Main Block,5,6
+R102,24,1,Main Block,4,6
+R103,30,1,Main Block,5,6
+R201,35,2,Science Block,7,5
+R202,30,2,Science Block,5,6
+R203,28,2,Science Block,7,4
+R301,32,3,Engineering Block,8,4
+R302,36,3,Engineering Block,6,6

@@ -49,7 +49,6 @@ export default function Sidebar(){
             <>
               <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-6 mt-4 mb-2">SEAT ALLOTMENT</div>
               <MenuItem to="/allotment">🪑 SEAT ALLOTMENT</MenuItem>
-              <MenuItem to="/visual-seat-selection">🎫 VISUAL SELECT</MenuItem>
               <MenuItem to="/allotment-reports">📋 REPORTS</MenuItem>
               
               <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-6 mt-4 mb-2">MANAGEMENT</div>

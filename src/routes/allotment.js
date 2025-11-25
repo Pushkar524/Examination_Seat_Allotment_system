@@ -180,12 +180,15 @@ router.get('/allotments', authMiddleware(['admin']), async (req, res) => {
     const result = await pool.query(`
       SELECT 
         sa.id,
+        sa.student_id,
+        sa.room_id,
+        sa.seat_number,
+        sa.subject,
         s.name as student_name,
         s.roll_no,
         s.department,
         r.room_no,
         r.floor,
-        sa.seat_number,
         sa.allotment_date
       FROM seat_allotments sa
       JOIN students s ON sa.student_id = s.id

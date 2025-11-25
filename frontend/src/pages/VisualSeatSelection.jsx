@@ -30,12 +30,12 @@ export default function VisualSeatSelection() {
     }
   }, [isAdmin])
 
-  // Load occupied seats when room is selected
+  // Load occupied seats when room is selected or allotments change
   useEffect(() => {
     if (selectedRoom) {
       loadOccupiedSeats(selectedRoom.id)
     }
-  }, [selectedRoom])
+  }, [selectedRoom, allotments])
 
   async function loadData() {
     try {
@@ -58,8 +58,10 @@ export default function VisualSeatSelection() {
 
   async function loadOccupiedSeats(roomId) {
     try {
+      // Filter allotments for this specific room using the room_id field
       const roomAllotments = allotments.filter(a => a.room_id === roomId)
-      const occupied = roomAllotments.map(a => a.seat_number)
+      const occupied = roomAllotments.map(a => parseInt(a.seat_number))
+      console.log('Room ID:', roomId, 'Room Allotments:', roomAllotments, 'Occupied seats:', occupied)
       setOccupiedSeats(occupied)
     } catch (error) {
       console.error('Failed to load occupied seats:', error)
@@ -92,8 +94,9 @@ export default function VisualSeatSelection() {
     })
   }
 
-  // Get unassigned students
+  // Get unassigned students - check if student is already assigned to ANY seat
   const unassignedStudents = students.filter(student => {
+    // Check if student has any allotment (in any room) using student_id field
     const hasAllotment = allotments.some(a => a.student_id === student.id)
     return !hasAllotment
   })

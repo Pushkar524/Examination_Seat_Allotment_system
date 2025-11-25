@@ -8,10 +8,7 @@ import RegisterStudents from './pages/RegisterStudents'
 import RegisterStaff from './pages/RegisterStaff'
 import Rooms from './pages/Rooms'
 import SeatAllotment from './pages/SeatAllotment'
-import ManualAllotment from './pages/ManualAllotment'
 import InvigilatorAssignment from './pages/InvigilatorAssignment'
-import VisualSeatSelection from './pages/VisualSeatSelection'
-import SmartAllotment from './pages/SmartAllotment'
 import AllotmentReports from './pages/AllotmentReports'
 import DiagnosticPage from './pages/DiagnosticPage'
 
@@ -40,9 +37,6 @@ function ProtectedApp(){
             <Route path="/staff" element={<RegisterStaff/>} />
             <Route path="/rooms" element={<Rooms/>} />
             <Route path="/allotment" element={<SeatAllotment/>} />
-            <Route path="/manual-allotment" element={<ManualAllotment/>} />
-            <Route path="/visual-seat-selection" element={<VisualSeatSelection/>} />
-            <Route path="/smart-allotment" element={<SmartAllotment/>} />
             <Route path="/allotment-reports" element={<AllotmentReports/>} />
             <Route path="/assign-invigilators" element={<InvigilatorAssignment/>} />
             <Route path="/diagnostic" element={<DiagnosticPage/>} />

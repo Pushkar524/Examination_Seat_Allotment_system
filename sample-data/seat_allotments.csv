@@ -1,0 +1,7 @@
+student_id,room_id,seat_number,subject
+CS2021001,R101,1,Data Structures
+CS2021002,R101,2,Data Structures
+EE2021001,R102,1,Circuit Theory
+EE2021002,R102,2,Circuit Theory
+ME2021001,R201,1,Thermodynamics
+ME2021002,R201,2,Thermodynamics
