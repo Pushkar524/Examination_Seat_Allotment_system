@@ -22,6 +22,7 @@ export default function VisualSeatSelection() {
   const [occupiedSeats, setOccupiedSeats] = useState([])
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('') // For student search
+  const [departmentFilter, setDepartmentFilter] = useState('') // For filtering students by department
   const [step, setStep] = useState(1) // 1: Select seats, 2: Select students
   
   // Search and filter state for allotment list
@@ -99,11 +100,7 @@ export default function VisualSeatSelection() {
       if (prev.includes(studentId)) {
         return prev.filter(id => id !== studentId)
       } else {
-        // Limit to number of selected seats
-        if (prev.length < selectedSeats.length) {
-          return [...prev, studentId]
-        }
-        return prev
+        return [...prev, studentId]
       }
     })
   }
@@ -115,15 +112,31 @@ export default function VisualSeatSelection() {
     return !hasAllotment
   })
 
-  // Filter students by search term
+  // Filter students by search term and department
   const filteredStudents = unassignedStudents.filter(student => {
     const search = searchTerm.toLowerCase()
-    return (
+    const matchesSearch = (
       student.name.toLowerCase().includes(search) ||
       student.roll_no.toLowerCase().includes(search) ||
       student.department.toLowerCase().includes(search)
     )
+    const matchesDepartment = !departmentFilter || student.department === departmentFilter
+    return matchesSearch && matchesDepartment
   })
+
+  // Get unique departments from unassigned students
+  const availableDepartments = [...new Set(unassignedStudents.map(s => s.department))].sort()
+
+  // Select all filtered students
+  const handleSelectAllStudents = () => {
+    const allFilteredIds = filteredStudents.map(s => s.id)
+    setSelectedStudents(allFilteredIds)
+  }
+
+  // Deselect all students
+  const handleDeselectAllStudents = () => {
+    setSelectedStudents([])
+  }
 
   // Handle assignment submission
   async function handleAssignment() {
@@ -132,8 +145,8 @@ export default function VisualSeatSelection() {
       return
     }
 
-    if (selectedSeats.length !== selectedStudents.length) {
-      alert(`Please select exactly ${selectedSeats.length} students for ${selectedSeats.length} seats`)
+    if (selectedStudents.length > selectedSeats.length) {
+      alert(`You have selected ${selectedStudents.length} students but only ${selectedSeats.length} seats. Please select fewer students or more seats.`)
       return
     }
 
@@ -143,7 +156,8 @@ export default function VisualSeatSelection() {
       // Sort seats and create assignments
       const sortedSeats = [...selectedSeats].sort((a, b) => a - b)
       
-      for (let i = 0; i < sortedSeats.length; i++) {
+      // Only assign students to the first N seats (where N = number of students)
+      for (let i = 0; i < selectedStudents.length; i++) {
         await allotmentAPI.createAllotment({
           student_id: selectedStudents[i],
           room_id: selectedRoom.id,
@@ -151,7 +165,12 @@ export default function VisualSeatSelection() {
         })
       }
 
-      alert(`Successfully assigned ${selectedSeats.length} students to seats!`)
+      const unassignedSeats = selectedSeats.length - selectedStudents.length
+      const message = unassignedSeats > 0 
+        ? `Successfully assigned ${selectedStudents.length} students to seats! ${unassignedSeats} seat(s) left unassigned.`
+        : `Successfully assigned ${selectedStudents.length} students to seats!`
+      
+      alert(message)
       
       // Reset and reload
       setSelectedSeats([])
@@ -348,17 +367,47 @@ export default function VisualSeatSelection() {
                 </div>
               ) : (
                 <div>
-                  {/* Search */}
-                  <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="🔍 Search students..."
-                    className="w-full border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2 mb-4 focus:border-blue-500 focus:outline-none"
-                  />
+                  {/* Search and Filter */}
+                  <div className="space-y-3 mb-4">
+                    <input
+                      type="text"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      placeholder="🔍 Search students..."
+                      className="w-full border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2 focus:border-blue-500 focus:outline-none"
+                    />
+                    
+                    <select
+                      value={departmentFilter}
+                      onChange={(e) => setDepartmentFilter(e.target.value)}
+                      className="w-full border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2 focus:border-blue-500 focus:outline-none"
+                    >
+                      <option value="">All Departments</option>
+                      {availableDepartments.map(dept => (
+                        <option key={dept} value={dept}>{dept}</option>
+                      ))}
+                    </select>
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleSelectAllStudents}
+                        disabled={filteredStudents.length === 0}
+                        className="flex-1 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white text-sm font-semibold py-2 px-4 rounded-lg transition-colors"
+                      >
+                        Select All ({filteredStudents.length})
+                      </button>
+                      <button
+                        onClick={handleDeselectAllStudents}
+                        disabled={selectedStudents.length === 0}
+                        className="flex-1 bg-gray-500 hover:bg-gray-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white text-sm font-semibold py-2 px-4 rounded-lg transition-colors"
+                      >
+                        Deselect All
+                      </button>
+                    </div>
+                  </div>
 
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                    Select {selectedSeats.length} student(s) for {selectedSeats.length} seat(s)
+                    Select up to {selectedSeats.length} student(s) for {selectedSeats.length} seat(s)
                     <br />
                     <span className="text-blue-600 dark:text-blue-400 font-semibold">
                       {selectedStudents.length} / {selectedSeats.length} selected
@@ -376,15 +425,10 @@ export default function VisualSeatSelection() {
                         <button
                           key={student.id}
                           onClick={() => handleStudentSelect(student.id)}
-                          disabled={!selectedStudents.includes(student.id) && selectedStudents.length >= selectedSeats.length}
-                          className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
+                          className={`w-full text-left p-3 rounded-lg border-2 transition-all cursor-pointer ${
                             selectedStudents.includes(student.id)
                               ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 dark:border-blue-600'
                               : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 hover:border-blue-300'
-                          } ${
-                            !selectedStudents.includes(student.id) && selectedStudents.length >= selectedSeats.length
-                              ? 'opacity-50 cursor-not-allowed'
-                              : 'cursor-pointer'
                           }`}
                         >
                           <div className="flex items-center justify-between">
@@ -417,7 +461,7 @@ export default function VisualSeatSelection() {
                     </button>
                     <button
                       onClick={handleAssignment}
-                      disabled={selectedStudents.length !== selectedSeats.length || loading}
+                      disabled={selectedStudents.length === 0 || selectedStudents.length > selectedSeats.length || loading}
                       className="flex-1 bg-green-500 hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-colors"
                     >
                       {loading ? 'Assigning...' : 'Assign Seats'}
