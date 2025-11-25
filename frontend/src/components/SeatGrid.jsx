@@ -33,8 +33,9 @@ export default function SeatGrid({
   }
 
   // Calculate seat number based on bench (row) and position
+  // Vertical numbering: seats are numbered column by column (top to bottom, then next column)
   const getSeatNumber = (benchIndex, seatIndex) => {
-    return benchIndex * seatsPerBench + seatIndex + 1
+    return seatIndex * benches + benchIndex + 1
   }
 
   // Check if a seat is occupied
@@ -148,6 +149,96 @@ export default function SeatGrid({
     }
   }
 
+  // Pattern 1: Select alternate columns only (1, 3, 5, etc.)
+  const handleSelectAlternateColumns = () => {
+    if (readOnly) return
+    
+    // First deselect all
+    if (selectedSeats.length > 0) {
+      selectedSeats.forEach(seat => {
+        if (!isSeatOccupied(seat)) {
+          onSeatSelect(seat)
+        }
+      })
+    }
+    
+    // Then select alternate columns (odd columns: 0, 2, 4...)
+    const patternSeats = []
+    for (let benchIndex = 0; benchIndex < benches; benchIndex++) {
+      for (let seatIndex = 0; seatIndex < seatsPerBench; seatIndex += 2) {
+        const seatNumber = getSeatNumber(benchIndex, seatIndex)
+        if (!isSeatOccupied(seatNumber)) {
+          patternSeats.push(seatNumber)
+        }
+      }
+    }
+    
+    if (onSeatSelect && patternSeats.length > 0) {
+      patternSeats.forEach(seat => onSeatSelect(seat))
+    }
+  }
+
+  // Pattern 2: Select alternate rows only (A, C, E, etc.)
+  const handleSelectAlternateRows = () => {
+    if (readOnly) return
+    
+    // First deselect all
+    if (selectedSeats.length > 0) {
+      selectedSeats.forEach(seat => {
+        if (!isSeatOccupied(seat)) {
+          onSeatSelect(seat)
+        }
+      })
+    }
+    
+    // Then select alternate rows (even rows: 0, 2, 4...)
+    const patternSeats = []
+    for (let benchIndex = 0; benchIndex < benches; benchIndex += 2) {
+      for (let seatIndex = 0; seatIndex < seatsPerBench; seatIndex++) {
+        const seatNumber = getSeatNumber(benchIndex, seatIndex)
+        if (!isSeatOccupied(seatNumber)) {
+          patternSeats.push(seatNumber)
+        }
+      }
+    }
+    
+    if (onSeatSelect && patternSeats.length > 0) {
+      patternSeats.forEach(seat => onSeatSelect(seat))
+    }
+  }
+
+  // Pattern 3: Select alternate from both row and column (checkerboard pattern)
+  const handleSelectCheckerboard = () => {
+    if (readOnly) return
+    
+    // First deselect all
+    if (selectedSeats.length > 0) {
+      selectedSeats.forEach(seat => {
+        if (!isSeatOccupied(seat)) {
+          onSeatSelect(seat)
+        }
+      })
+    }
+    
+    // Then select checkerboard pattern
+    const patternSeats = []
+    for (let benchIndex = 0; benchIndex < benches; benchIndex++) {
+      for (let seatIndex = 0; seatIndex < seatsPerBench; seatIndex++) {
+        // Select seats where (row + column) is even
+        if ((benchIndex + seatIndex) % 2 === 0) {
+          const seatNumber = getSeatNumber(benchIndex, seatIndex)
+          if (!isSeatOccupied(seatNumber)) {
+            patternSeats.push(seatNumber)
+          }
+        }
+      }
+    }
+    
+    if (onSeatSelect && patternSeats.length > 0) {
+      patternSeats.forEach(seat => onSeatSelect(seat))
+    }
+  }
+
   // Get seat CSS classes based on state
   const getSeatClasses = (seatNumber) => {
     const baseClasses = "w-12 h-12 rounded-lg flex items-center justify-center text-sm font-semibold transition-all cursor-pointer border-2"
@@ -188,19 +279,48 @@ export default function SeatGrid({
         </div>
 
         {!readOnly && (
-          <div className="flex flex-wrap gap-2 justify-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <button
-              onClick={handleSelectAll}
-              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold rounded-lg transition-colors"
-            >
-              Select All Available
-            </button>
-            <button
-              onClick={handleDeselectAll}
-              className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm font-semibold rounded-lg transition-colors"
-            >
-              Deselect All
-            </button>
+          <div className="space-y-2">
+            <div className="flex flex-wrap gap-2 justify-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+              <button
+                onClick={handleSelectAll}
+                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold rounded-lg transition-colors"
+              >
+                Select All Available
+              </button>
+              <button
+                onClick={handleDeselectAll}
+                className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm font-semibold rounded-lg transition-colors"
+              >
+                Deselect All
+              </button>
+            </div>
+            
+            <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+              <p className="text-xs font-semibold text-purple-900 dark:text-purple-200 mb-2 text-center">📐 Selection Patterns</p>
+              <div className="flex flex-wrap gap-2 justify-center">
+                <button
+                  onClick={handleSelectAlternateColumns}
+                  className="px-3 py-2 bg-purple-500 hover:bg-purple-600 text-white text-xs font-semibold rounded-lg transition-colors"
+                  title="Select alternate columns (1, 3, 5, ...)"
+                >
+                  Pattern 1: Alt. Columns
+                </button>
+                <button
+                  onClick={handleSelectAlternateRows}
+                  className="px-3 py-2 bg-purple-500 hover:bg-purple-600 text-white text-xs font-semibold rounded-lg transition-colors"
+                  title="Select alternate rows (A, C, E, ...)"
+                >
+                  Pattern 2: Alt. Rows
+                </button>
+                <button
+                  onClick={handleSelectCheckerboard}
+                  className="px-3 py-2 bg-purple-500 hover:bg-purple-600 text-white text-xs font-semibold rounded-lg transition-colors"
+                  title="Select checkerboard pattern"
+                >
+                  Pattern 3: Checkerboard
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
