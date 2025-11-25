@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { allotmentAPI, exportAPI } from '../services/api';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 const AllotmentReports = () => {
   const [allotments, setAllotments] = useState([]);
@@ -194,6 +196,84 @@ const AllotmentReports = () => {
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
+  };
+
+  // Export department-wise PDF
+  const exportDepartmentPDF = (dept) => {
+    const deptAllotments = groupedByDepartment[dept];
+    if (!deptAllotments || deptAllotments.length === 0) return;
+
+    const doc = new jsPDF();
+    
+    // Add title
+    doc.setFontSize(18);
+    doc.text('Seat Allotment Report', 105, 15, { align: 'center' });
+    
+    doc.setFontSize(14);
+    doc.text(dept, 105, 25, { align: 'center' });
+    
+    doc.setFontSize(10);
+    doc.text(`Total Students: ${deptAllotments.length}`, 105, 32, { align: 'center' });
+    doc.text(`Generated: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 105, 38, { align: 'center' });
+
+    // Add table
+    doc.autoTable({
+      startY: 45,
+      head: [['Roll No', 'Student Name', 'Department', 'Room No', 'Floor', 'Seat No']],
+      body: deptAllotments.map(a => [
+        a.roll_no,
+        a.student_name,
+        a.department,
+        a.room_no,
+        a.floor,
+        a.seat_number
+      ]),
+      theme: 'grid',
+      headStyles: { fillColor: [34, 197, 94] }, // Green color
+      styles: { fontSize: 9 }
+    });
+
+    // Save the PDF
+    doc.save(`${dept}_allotments.pdf`);
+  };
+
+  // Export room-wise PDF
+  const exportRoomPDF = (room) => {
+    const roomAllotments = groupedByRoom[room];
+    if (!roomAllotments || roomAllotments.length === 0) return;
+
+    const doc = new jsPDF();
+    
+    // Add title
+    doc.setFontSize(18);
+    doc.text('Seat Allotment Report', 105, 15, { align: 'center' });
+    
+    doc.setFontSize(14);
+    doc.text(room, 105, 25, { align: 'center' });
+    
+    doc.setFontSize(10);
+    doc.text(`Total Students: ${roomAllotments.length}`, 105, 32, { align: 'center' });
+    doc.text(`Generated: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 105, 38, { align: 'center' });
+
+    // Add table
+    doc.autoTable({
+      startY: 45,
+      head: [['Roll No', 'Student Name', 'Department', 'Room No', 'Floor', 'Seat No']],
+      body: roomAllotments.map(a => [
+        a.roll_no,
+        a.student_name,
+        a.department,
+        a.room_no,
+        a.floor,
+        a.seat_number
+      ]),
+      theme: 'grid',
+      headStyles: { fillColor: [147, 51, 234] }, // Purple color
+      styles: { fontSize: 9 }
+    });
+
+    // Save the PDF
+    doc.save(`${room}_allotments.pdf`);
   };
 
   if (loading) {
@@ -412,16 +492,28 @@ const AllotmentReports = () => {
                           {groupedByDepartment[dept].length} students
                         </span>
                       </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          exportDepartmentCSV(dept);
-                        }}
-                        className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm transition flex items-center gap-1"
-                        title="Export to CSV"
-                      >
-                        <span>📥</span> Export
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            exportDepartmentCSV(dept);
+                          }}
+                          className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm transition flex items-center gap-1"
+                          title="Export to CSV"
+                        >
+                          <span>📥</span> CSV
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            exportDepartmentPDF(dept);
+                          }}
+                          className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm transition flex items-center gap-1"
+                          title="Export to PDF"
+                        >
+                          <span>📄</span> PDF
+                        </button>
+                      </div>
                     </div>
                     <button
                       onClick={() => setDepartmentFilter(dept)}
@@ -464,6 +556,16 @@ const AllotmentReports = () => {
                         title="Export to CSV"
                       >
                         📥
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          exportRoomPDF(room);
+                        }}
+                        className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs transition"
+                        title="Export to PDF"
+                      >
+                        📄
                       </button>
                     </div>
                   </div>
