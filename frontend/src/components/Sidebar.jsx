@@ -55,6 +55,7 @@ export default function Sidebar(){
               <MenuItem to="/students">👨‍🎓 STUDENTS</MenuItem>
               <MenuItem to="/staff">👨‍🏫 INVIGILATORS</MenuItem>
               <MenuItem to="/rooms">🏢 ROOMS</MenuItem>
+              <MenuItem to="/exams">📅 EXAMS</MenuItem>
               <MenuItem to="/assign-invigilators">📌 ASSIGN STAFF</MenuItem>
             </>
           )}

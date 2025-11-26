@@ -12,6 +12,7 @@ import SeatAllotment from './pages/SeatAllotment'
 import InvigilatorAssignment from './pages/InvigilatorAssignment'
 import AllotmentReports from './pages/AllotmentReports'
 import DiagnosticPage from './pages/DiagnosticPage'
+import ExamManagement from './pages/ExamManagement'
 
 export default function App(){
   return (
@@ -47,6 +48,7 @@ function ProtectedApp(){
             <Route path="/allotment" element={<SeatAllotment/>} />
             <Route path="/allotment-reports" element={<AllotmentReports/>} />
             <Route path="/assign-invigilators" element={<InvigilatorAssignment/>} />
+            <Route path="/exams" element={<ExamManagement/>} />
             <Route path="/diagnostic" element={<DiagnosticPage/>} />
           </Routes>
         </div>
