@@ -153,6 +153,38 @@ export default function SeatGrid({
   const handleSelectAlternateColumns = () => {
     if (readOnly) return
     
+    // Check which pattern is currently selected
+    // Pattern A: columns 0, 2, 4, ... (columns 1, 3, 5, ... in display)
+    // Pattern B: columns 1, 3, 5, ... (columns 2, 4, 6, ... in display)
+    
+    const patternASeats = []
+    const patternBSeats = []
+    
+    for (let benchIndex = 0; benchIndex < benches; benchIndex++) {
+      for (let seatIndex = 0; seatIndex < seatsPerBench; seatIndex += 2) {
+        const seatNumber = getSeatNumber(benchIndex, seatIndex)
+        if (!isSeatOccupied(seatNumber)) {
+          patternASeats.push(seatNumber)
+        }
+      }
+      for (let seatIndex = 1; seatIndex < seatsPerBench; seatIndex += 2) {
+        const seatNumber = getSeatNumber(benchIndex, seatIndex)
+        if (!isSeatOccupied(seatNumber)) {
+          patternBSeats.push(seatNumber)
+        }
+      }
+    }
+    
+    // Check if Pattern A is currently selected
+    const patternASelected = patternASeats.length > 0 && 
+                              patternASeats.every(seat => selectedSeats.includes(seat)) &&
+                              patternBSeats.every(seat => !selectedSeats.includes(seat))
+    
+    // Check if Pattern B is currently selected
+    const patternBSelected = patternBSeats.length > 0 && 
+                              patternBSeats.every(seat => selectedSeats.includes(seat)) &&
+                              patternASeats.every(seat => !selectedSeats.includes(seat))
+    
     // First deselect all
     if (selectedSeats.length > 0) {
       selectedSeats.forEach(seat => {
@@ -162,19 +194,15 @@ export default function SeatGrid({
       })
     }
     
-    // Then select alternate columns (odd columns: 0, 2, 4...)
-    const patternSeats = []
-    for (let benchIndex = 0; benchIndex < benches; benchIndex++) {
-      for (let seatIndex = 0; seatIndex < seatsPerBench; seatIndex += 2) {
-        const seatNumber = getSeatNumber(benchIndex, seatIndex)
-        if (!isSeatOccupied(seatNumber)) {
-          patternSeats.push(seatNumber)
-        }
+    // Then select the appropriate pattern
+    if (onSeatSelect) {
+      if (patternASelected) {
+        // If Pattern A was selected, now select Pattern B
+        patternBSeats.forEach(seat => onSeatSelect(seat))
+      } else {
+        // Default: select Pattern A (or if Pattern B was selected, cycle back to Pattern A)
+        patternASeats.forEach(seat => onSeatSelect(seat))
       }
-    }
-    
-    if (onSeatSelect && patternSeats.length > 0) {
-      patternSeats.forEach(seat => onSeatSelect(seat))
     }
   }
 
@@ -182,6 +210,41 @@ export default function SeatGrid({
   const handleSelectAlternateRows = () => {
     if (readOnly) return
     
+    // Check which pattern is currently selected
+    // Pattern A: rows 0, 2, 4, ... (rows A, C, E, ... in display)
+    // Pattern B: rows 1, 3, 5, ... (rows B, D, F, ... in display)
+    
+    const patternASeats = []
+    const patternBSeats = []
+    
+    for (let benchIndex = 0; benchIndex < benches; benchIndex += 2) {
+      for (let seatIndex = 0; seatIndex < seatsPerBench; seatIndex++) {
+        const seatNumber = getSeatNumber(benchIndex, seatIndex)
+        if (!isSeatOccupied(seatNumber)) {
+          patternASeats.push(seatNumber)
+        }
+      }
+    }
+    
+    for (let benchIndex = 1; benchIndex < benches; benchIndex += 2) {
+      for (let seatIndex = 0; seatIndex < seatsPerBench; seatIndex++) {
+        const seatNumber = getSeatNumber(benchIndex, seatIndex)
+        if (!isSeatOccupied(seatNumber)) {
+          patternBSeats.push(seatNumber)
+        }
+      }
+    }
+    
+    // Check if Pattern A is currently selected
+    const patternASelected = patternASeats.length > 0 && 
+                              patternASeats.every(seat => selectedSeats.includes(seat)) &&
+                              patternBSeats.every(seat => !selectedSeats.includes(seat))
+    
+    // Check if Pattern B is currently selected
+    const patternBSelected = patternBSeats.length > 0 && 
+                              patternBSeats.every(seat => selectedSeats.includes(seat)) &&
+                              patternASeats.every(seat => !selectedSeats.includes(seat))
+    
     // First deselect all
     if (selectedSeats.length > 0) {
       selectedSeats.forEach(seat => {
@@ -191,19 +254,15 @@ export default function SeatGrid({
       })
     }
     
-    // Then select alternate rows (even rows: 0, 2, 4...)
-    const patternSeats = []
-    for (let benchIndex = 0; benchIndex < benches; benchIndex += 2) {
-      for (let seatIndex = 0; seatIndex < seatsPerBench; seatIndex++) {
-        const seatNumber = getSeatNumber(benchIndex, seatIndex)
-        if (!isSeatOccupied(seatNumber)) {
-          patternSeats.push(seatNumber)
-        }
+    // Then select the appropriate pattern
+    if (onSeatSelect) {
+      if (patternASelected) {
+        // If Pattern A was selected, now select Pattern B
+        patternBSeats.forEach(seat => onSeatSelect(seat))
+      } else {
+        // Default: select Pattern A (or if Pattern B was selected, cycle back to Pattern A)
+        patternASeats.forEach(seat => onSeatSelect(seat))
       }
-    }
-    
-    if (onSeatSelect && patternSeats.length > 0) {
-      patternSeats.forEach(seat => onSeatSelect(seat))
     }
   }
 
@@ -211,6 +270,36 @@ export default function SeatGrid({
   const handleSelectCheckerboard = () => {
     if (readOnly) return
     
+    // Check which pattern is currently selected
+    // Pattern A: seats where (row + column) is even
+    // Pattern B: seats where (row + column) is odd
+    
+    const patternASeats = []
+    const patternBSeats = []
+    
+    for (let benchIndex = 0; benchIndex < benches; benchIndex++) {
+      for (let seatIndex = 0; seatIndex < seatsPerBench; seatIndex++) {
+        const seatNumber = getSeatNumber(benchIndex, seatIndex)
+        if (!isSeatOccupied(seatNumber)) {
+          if ((benchIndex + seatIndex) % 2 === 0) {
+            patternASeats.push(seatNumber)
+          } else {
+            patternBSeats.push(seatNumber)
+          }
+        }
+      }
+    }
+    
+    // Check if Pattern A is currently selected
+    const patternASelected = patternASeats.length > 0 && 
+                              patternASeats.every(seat => selectedSeats.includes(seat)) &&
+                              patternBSeats.every(seat => !selectedSeats.includes(seat))
+    
+    // Check if Pattern B is currently selected
+    const patternBSelected = patternBSeats.length > 0 && 
+                              patternBSeats.every(seat => selectedSeats.includes(seat)) &&
+                              patternASeats.every(seat => !selectedSeats.includes(seat))
+    
     // First deselect all
     if (selectedSeats.length > 0) {
       selectedSeats.forEach(seat => {
@@ -220,22 +309,15 @@ export default function SeatGrid({
       })
     }
     
-    // Then select checkerboard pattern
-    const patternSeats = []
-    for (let benchIndex = 0; benchIndex < benches; benchIndex++) {
-      for (let seatIndex = 0; seatIndex < seatsPerBench; seatIndex++) {
-        // Select seats where (row + column) is even
-        if ((benchIndex + seatIndex) % 2 === 0) {
-          const seatNumber = getSeatNumber(benchIndex, seatIndex)
-          if (!isSeatOccupied(seatNumber)) {
-            patternSeats.push(seatNumber)
-          }
-        }
+    // Then select the appropriate pattern
+    if (onSeatSelect) {
+      if (patternASelected) {
+        // If Pattern A was selected, now select Pattern B
+        patternBSeats.forEach(seat => onSeatSelect(seat))
+      } else {
+        // Default: select Pattern A (or if Pattern B was selected, cycle back to Pattern A)
+        patternASeats.forEach(seat => onSeatSelect(seat))
       }
-    }
-    
-    if (onSeatSelect && patternSeats.length > 0) {
-      patternSeats.forEach(seat => onSeatSelect(seat))
     }
   }
 
