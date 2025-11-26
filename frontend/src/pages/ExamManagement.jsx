@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../context/AuthContext'
 import Modal from '../components/Modal'
 import { examsAPI } from '../services/api'
@@ -13,6 +13,10 @@ export default function ExamManagement() {
   const [editMode, setEditMode] = useState(false)
   const [currentExam, setCurrentExam] = useState(null)
   const [subjectModalOpen, setSubjectModalOpen] = useState(false)
+  const [uploadModalOpen, setUploadModalOpen] = useState(false)
+  const [uploadSuccess, setUploadSuccess] = useState('')
+  const [uploadErrors, setUploadErrors] = useState([])
+  const fileInputRef = useRef(null)
   
   const [examForm, setExamForm] = useState({
     exam_name: '',
@@ -91,6 +95,72 @@ export default function ExamManagement() {
       end_time: ''
     })
     setSubjectModalOpen(true)
+  }
+
+  function openUploadModal(exam) {
+    setCurrentExam(exam)
+    setUploadModalOpen(true)
+    setUploadErrors([])
+    setUploadSuccess('')
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  async function handleFileUpload(e) {
+    const file = e.target.files[0]
+    if (!file) return
+
+    setUploadErrors([])
+    setUploadSuccess('')
+    setLoading(true)
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const token = localStorage.getItem('token')
+      const response = await fetch(`${API_BASE_URL}/exams/exams/${currentExam.id}/subjects/upload`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      })
+
+      if (!response.ok) {
+        const contentType = response.headers.get('content-type')
+        if (contentType && contentType.includes('application/json')) {
+          const error = await response.json()
+          throw new Error(error.error || 'Upload failed')
+        } else {
+          const text = await response.text()
+          console.error('Non-JSON response:', text)
+          throw new Error('Server returned an invalid response. Please check the file format.')
+        }
+      }
+
+      const result = await response.json()
+      console.log('Upload result:', result)
+
+      setUploadSuccess(`✓ Successfully imported ${result.successCount} subject(s)`)
+      
+      if (result.errors && result.errors.length > 0) {
+        setUploadErrors(result.errors.map(err => `${err.subject}: ${err.error}`))
+      }
+
+      await loadExams()
+
+      if (!result.errorCount || result.errorCount === 0) {
+        setTimeout(() => {
+          setUploadModalOpen(false)
+          setUploadSuccess('')
+        }, 2000)
+      }
+    } catch (error) {
+      console.error('Upload error:', error)
+      setUploadErrors([error.message || 'Upload failed'])
+    } finally {
+      setLoading(false)
+    }
   }
 
   async function handleSubmit(e) {
@@ -344,6 +414,12 @@ export default function ExamManagement() {
                     ➕ Add Subject
                   </button>
                   <button
+                    onClick={() => openUploadModal(exam)}
+                    className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white text-sm font-semibold rounded-lg transition-colors"
+                  >
+                    📁 Upload CSV
+                  </button>
+                  <button
                     onClick={() => openEditModal(exam)}
                     className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold rounded-lg transition-colors"
                   >
@@ -577,6 +653,87 @@ export default function ExamManagement() {
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* Upload Subjects CSV Modal */}
+      <Modal open={uploadModalOpen} title="📁 Upload Subjects from CSV" onClose={() => setUploadModalOpen(false)}>
+        <div className="p-4 space-y-4">
+          {/* Instructions */}
+          <div className="bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-500 p-4 rounded">
+            <h4 className="font-semibold text-blue-900 dark:text-blue-200 mb-2">📋 CSV File Format Requirements</h4>
+            <p className="text-sm text-blue-800 dark:text-blue-300 mb-2">Your CSV file must contain the following columns:</p>
+            <div className="bg-white dark:bg-gray-800 p-3 rounded border border-blue-200 dark:border-blue-700 text-sm font-mono">
+              subject_name, subject_code, exam_date, start_time, end_time
+            </div>
+            <div className="mt-3 space-y-1 text-sm text-blue-800 dark:text-blue-300">
+              <p>• <strong>subject_name</strong>: Name of the subject (required)</p>
+              <p>• <strong>subject_code</strong>: Subject code (e.g., MATH101)</p>
+              <p>• <strong>exam_date</strong>: Format: YYYY-MM-DD (must be ≥ exam date)</p>
+              <p>• <strong>start_time</strong>: Format: HH:MM (e.g., 09:00)</p>
+              <p>• <strong>end_time</strong>: Format: HH:MM (must not exceed exam end time if same date)</p>
+            </div>
+          </div>
+
+          {/* Example */}
+          <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded border dark:border-gray-700">
+            <h5 className="text-sm font-semibold mb-2 dark:text-white">Example content:</h5>
+            <pre className="text-xs bg-white dark:bg-gray-900 p-2 rounded border dark:border-gray-700 overflow-x-auto dark:text-gray-300">
+{`subject_name,subject_code,exam_date,start_time,end_time
+Mathematics,MATH101,2025-12-12,09:00,11:00
+Physics,PHY101,2025-12-12,13:00,15:00
+Chemistry,CHEM101,2025-12-13,09:00,11:00`}
+            </pre>
+          </div>
+
+          {/* Download Sample */}
+          <div className="bg-green-50 dark:bg-green-900/30 border-l-4 border-green-500 p-3 rounded">
+            <p className="text-sm text-green-800 dark:text-green-300 mb-2">
+              💡 Download the sample CSV file to use as a template
+            </p>
+            <a
+              href="/sample-data/subjects_sample.csv"
+              download="subjects_sample.csv"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-semibold rounded transition"
+            >
+              📥 Download Sample CSV
+            </a>
+          </div>
+
+          {/* File Upload */}
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Select CSV File
+            </label>
+            <input 
+              ref={fileInputRef}
+              type="file" 
+              accept=".csv"
+              onChange={handleFileUpload}
+              disabled={loading}
+              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 cursor-pointer disabled:opacity-50 dark:file:bg-purple-900 dark:file:text-purple-200"
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Accepted format: .csv</p>
+          </div>
+
+          {/* Success Message */}
+          {uploadSuccess && (
+            <div className="bg-green-50 dark:bg-green-900/30 border-l-4 border-green-500 p-4 rounded">
+              <p className="text-green-800 dark:text-green-200 font-medium">{uploadSuccess}</p>
+            </div>
+          )}
+
+          {/* Error Messages */}
+          {uploadErrors.length > 0 && (
+            <div className="bg-red-50 dark:bg-red-900/30 border-l-4 border-red-500 p-4 rounded max-h-64 overflow-y-auto">
+              <h4 className="font-semibold text-red-900 dark:text-red-200 mb-2">⚠️ Upload Issues</h4>
+              <ul className="text-sm text-red-700 dark:text-red-300 space-y-1">
+                {uploadErrors.map((err, idx) => (
+                  <li key={idx} className="font-mono text-xs">• {err}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
       </Modal>
     </div>
   )

@@ -1,8 +1,59 @@
 const express = require('express');
+const multer = require('multer');
+const csv = require('csv-parser');
+const xlsx = require('xlsx');
+const fs = require('fs');
 const pool = require('../config/database');
 const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = './uploads';
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + '-' + file.originalname);
+  }
+});
+
+const upload = multer({ storage });
+
+// Helper function to parse CSV or Excel file
+const parseFile = (filePath) => {
+  return new Promise((resolve, reject) => {
+    const ext = filePath.split('.').pop().toLowerCase();
+    
+    if (ext === 'csv') {
+      const results = [];
+      fs.createReadStream(filePath)
+        .pipe(csv())
+        .on('data', (data) => results.push(data))
+        .on('end', () => {
+          fs.unlinkSync(filePath);
+          resolve(results);
+        })
+        .on('error', reject);
+    } else if (ext === 'xlsx' || ext === 'xls') {
+      try {
+        const workbook = xlsx.readFile(filePath);
+        const sheetName = workbook.SheetNames[0];
+        const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+        fs.unlinkSync(filePath);
+        resolve(data);
+      } catch (error) {
+        reject(error);
+      }
+    } else {
+      reject(new Error('Unsupported file format'));
+    }
+  });
+};
 
 // Get all exams
 router.get('/exams', authMiddleware(['admin']), async (req, res) => {
@@ -261,6 +312,163 @@ function timeToMinutes(timeString) {
   const [hours, minutes] = timeString.split(':').map(Number);
   return hours * 60 + minutes;
 }
+
+// Bulk upload subjects from CSV/Excel
+router.post('/exams/:id/subjects/upload', authMiddleware(['admin']), upload.single('file'), async (req, res) => {
+  const client = await pool.connect();
+  
+  try {
+    const { id } = req.params;
+
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    console.log('File uploaded:', req.file.originalname);
+
+    // Get exam details for validation
+    const examResult = await pool.query('SELECT exam_date, start_time, end_time FROM exams WHERE id = $1', [id]);
+    if (examResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Exam not found' });
+    }
+
+    const exam = examResult.rows[0];
+    console.log('Exam found:', exam);
+
+    // Parse the file
+    let subjects;
+    try {
+      subjects = await parseFile(req.file.path);
+      console.log('Parsed subjects:', subjects);
+    } catch (parseError) {
+      console.error('Parse error:', parseError);
+      return res.status(400).json({ error: `Failed to parse CSV file: ${parseError.message}` });
+    }
+
+    if (!subjects || subjects.length === 0) {
+      return res.status(400).json({ error: 'No subjects found in the uploaded file' });
+    }
+    
+    try {
+      await client.query('BEGIN');
+      
+      let successCount = 0;
+      let errorCount = 0;
+      const errors = [];
+
+      for (const subject of subjects) {
+        try {
+          let { subject_name, subject_code, exam_date, start_time, end_time } = subject;
+
+          // Trim whitespace from all fields
+          if (typeof subject_name === 'string') subject_name = subject_name.trim();
+          if (typeof subject_code === 'string') subject_code = subject_code.trim();
+          if (typeof exam_date === 'string') exam_date = exam_date.trim();
+          if (typeof start_time === 'string') start_time = start_time.trim();
+          if (typeof end_time === 'string') end_time = end_time.trim();
+
+          if (!subject_name) {
+            errors.push({ subject: subject_name || 'Unknown', error: 'Subject name is required' });
+            errorCount++;
+            continue;
+          }
+
+          // Parse and validate exam_date format (YYYY-MM-DD)
+          let parsedExamDate = null;
+          if (exam_date) {
+            // Handle various date formats
+            if (/^\d{4}-\d{2}-\d{2}$/.test(exam_date)) {
+              parsedExamDate = exam_date;
+            } else if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(exam_date)) {
+              // Convert MM/DD/YYYY to YYYY-MM-DD
+              const parts = exam_date.split('/');
+              parsedExamDate = `${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
+            } else {
+              errors.push({ subject: subject_name, error: `Invalid date format: ${exam_date}. Use YYYY-MM-DD` });
+              errorCount++;
+              continue;
+            }
+          }
+
+          // Validate time format (HH:MM)
+          if (start_time && !/^\d{1,2}:\d{2}$/.test(start_time)) {
+            errors.push({ subject: subject_name, error: `Invalid start time format: ${start_time}. Use HH:MM` });
+            errorCount++;
+            continue;
+          }
+          if (end_time && !/^\d{1,2}:\d{2}$/.test(end_time)) {
+            errors.push({ subject: subject_name, error: `Invalid end time format: ${end_time}. Use HH:MM` });
+            errorCount++;
+            continue;
+          }
+
+          // Validate subject date is not before exam date
+          if (parsedExamDate) {
+            const examDate = new Date(exam.exam_date);
+            const subjectDate = new Date(parsedExamDate);
+            if (subjectDate < examDate) {
+              errors.push({ subject: subject_name, error: 'Subject exam date cannot be before the exam date' });
+              errorCount++;
+              continue;
+            }
+          }
+
+          // Validate subject end time does not exceed exam end time (if on same date)
+          if (parsedExamDate && exam.exam_date && end_time && exam.end_time) {
+            const examDateStr = new Date(exam.exam_date).toDateString();
+            const subjectDateStr = new Date(parsedExamDate).toDateString();
+            
+            if (examDateStr === subjectDateStr) {
+              const examEndMinutes = timeToMinutes(exam.end_time);
+              const subjectEndMinutes = timeToMinutes(end_time);
+              
+              if (subjectEndMinutes > examEndMinutes) {
+                errors.push({ subject: subject_name, error: 'Subject end time exceeds exam end time on same date' });
+                errorCount++;
+                continue;
+              }
+            }
+          }
+
+          await client.query(
+            `INSERT INTO exam_subjects (exam_id, subject_name, subject_code, exam_date, start_time, end_time)
+             VALUES ($1, $2, $3, $4, $5, $6)`,
+            [id, subject_name, subject_code || null, parsedExamDate || null, start_time || null, end_time || null]
+          );
+          
+          successCount++;
+        } catch (err) {
+          console.error('Subject insertion error:', err);
+          errorCount++;
+          errors.push({ subject: subject.subject_name || 'Unknown', error: err.message });
+        }
+      }
+
+      await client.query('COMMIT');
+      
+      const response = {
+        message: 'Subjects upload completed',
+        successCount,
+        errorCount,
+        errors: errors.length > 0 ? errors : undefined
+      };
+      
+      console.log('Upload response:', response);
+      return res.json(response);
+    } catch (error) {
+      await client.query('ROLLBACK');
+      console.error('Transaction error:', error);
+      return res.status(500).json({ error: `Transaction failed: ${error.message}` });
+    }
+  } catch (error) {
+    console.error('Subjects upload error:', error);
+    return res.status(500).json({ error: `Failed to upload subjects: ${error.message}` });
+  } finally {
+    if (client) {
+      client.release();
+    }
+  }
+});
 
 // Delete subject from exam
 router.delete('/exams/:examId/subjects/:subjectId', authMiddleware(['admin']), async (req, res) => {
