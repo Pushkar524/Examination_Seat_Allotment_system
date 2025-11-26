@@ -236,6 +236,37 @@ export default function VisualSeatSelection() {
     }
   }
 
+  // Handle delete all allotments
+  async function handleDeleteAllAllotments() {
+    if (!window.confirm(`Are you sure you want to delete ALL ${allotments.length} seat allotments? This action cannot be undone!`)) {
+      return
+    }
+
+    if (!window.confirm('This will permanently delete all seat assignments. Are you absolutely sure?')) {
+      return
+    }
+
+    try {
+      setLoading(true)
+      
+      // Delete all allotments one by one
+      for (const allotment of allotments) {
+        await allotmentAPI.deleteAllotment(allotment.id)
+      }
+      
+      await loadData()
+      if (selectedRoom) {
+        await loadOccupiedSeats(selectedRoom.id)
+      }
+      alert('All seat allotments deleted successfully!')
+    } catch (error) {
+      console.error('Delete all failed:', error)
+      alert(error.message || 'Failed to delete all allotments')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   if (!isAdmin) {
     return (
       <div className="max-w-4xl mx-auto p-6">
@@ -488,9 +519,21 @@ export default function VisualSeatSelection() {
       {allotments.length > 0 && (
         <div className="mt-8">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border dark:border-gray-700">
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">
-              📋 All Seat Allotments
-            </h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
+                📋 All Seat Allotments
+              </h2>
+              {isAdmin && (
+                <button
+                  onClick={handleDeleteAllAllotments}
+                  disabled={loading}
+                  className="px-4 py-2 bg-red-500 hover:bg-red-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <span>🗑️</span>
+                  {loading ? 'Deleting...' : 'Delete All Allotments'}
+                </button>
+              )}
+            </div>
 
             {/* Search and Filter Bar */}
             <div className="grid grid-cols-3 gap-4 mb-4">
