@@ -64,6 +64,35 @@ const initDatabase = async () => {
     `);
     console.log('✓ Invigilators table created');
 
+    // Create exams table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS exams (
+        id SERIAL PRIMARY KEY,
+        exam_name VARCHAR(255) NOT NULL,
+        exam_date DATE NOT NULL,
+        start_time TIME,
+        end_time TIME,
+        description TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    console.log('✓ Exams table created');
+
+    // Create exam_subjects table (many-to-many relationship)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS exam_subjects (
+        id SERIAL PRIMARY KEY,
+        exam_id INTEGER REFERENCES exams(id) ON DELETE CASCADE,
+        subject_name VARCHAR(255) NOT NULL,
+        subject_code VARCHAR(50),
+        exam_date DATE,
+        start_time TIME,
+        end_time TIME,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    console.log('✓ Exam subjects table created');
+
     // Create seat_allotments table
     await client.query(`
       CREATE TABLE IF NOT EXISTS seat_allotments (
@@ -72,8 +101,9 @@ const initDatabase = async () => {
         room_id INTEGER REFERENCES rooms(id) ON DELETE CASCADE,
         seat_number INTEGER NOT NULL,
         subject VARCHAR(100),
+        exam_id INTEGER REFERENCES exams(id) ON DELETE SET NULL,
         allotment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(room_id, seat_number)
+        UNIQUE(room_id, seat_number, exam_id)
       );
     `);
     console.log('✓ Seat allotments table created');

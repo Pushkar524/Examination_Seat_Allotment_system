@@ -5,6 +5,7 @@ const authRoutes = require('./routes/auth');
 const uploadRoutes = require('./routes/upload');
 const allotmentRoutes = require('./routes/allotment');
 const exportRoutes = require('./routes/export');
+const examsRoutes = require('./routes/exams');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -19,6 +20,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/allotment', allotmentRoutes);
 app.use('/api/export', exportRoutes);
+app.use('/api/exams', examsRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
