@@ -391,18 +391,11 @@ export default function SeatGrid({
                   Pattern 1: Alt. Columns
                 </button>
                 <button
-                  onClick={handleSelectAlternateRows}
-                  className="px-3 py-2 bg-purple-500 hover:bg-purple-600 text-white text-xs font-semibold rounded-lg transition-colors"
-                  title="Select alternate rows (A, C, E, ...)"
-                >
-                  Pattern 2: Alt. Rows
-                </button>
-                <button
                   onClick={handleSelectCheckerboard}
                   className="px-3 py-2 bg-purple-500 hover:bg-purple-600 text-white text-xs font-semibold rounded-lg transition-colors"
                   title="Select checkerboard pattern"
                 >
-                  Pattern 3: Checkerboard
+                  Pattern 2: Checkerboard
                 </button>
               </div>
             </div>
