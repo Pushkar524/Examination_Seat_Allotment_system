@@ -127,9 +127,10 @@ export default function VisualSeatSelection() {
   // Get unique departments from unassigned students
   const availableDepartments = [...new Set(unassignedStudents.map(s => s.department))].sort()
 
-  // Select all filtered students
+  // Select all filtered students (up to the number of available seats)
   const handleSelectAllStudents = () => {
-    const allFilteredIds = filteredStudents.map(s => s.id)
+    const availableSeatsCount = selectedSeats.length
+    const allFilteredIds = filteredStudents.slice(0, availableSeatsCount).map(s => s.id)
     setSelectedStudents(allFilteredIds)
   }
 
@@ -391,10 +392,10 @@ export default function VisualSeatSelection() {
                     <div className="flex gap-2">
                       <button
                         onClick={handleSelectAllStudents}
-                        disabled={filteredStudents.length === 0}
+                        disabled={filteredStudents.length === 0 || selectedSeats.length === 0}
                         className="flex-1 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white text-sm font-semibold py-2 px-4 rounded-lg transition-colors"
                       >
-                        Select All ({filteredStudents.length})
+                        Select All ({Math.min(filteredStudents.length, selectedSeats.length)}/{filteredStudents.length})
                       </button>
                       <button
                         onClick={handleDeselectAllStudents}
