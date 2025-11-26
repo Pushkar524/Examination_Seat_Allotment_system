@@ -175,19 +175,17 @@ export default function SeatGrid({
       }
     }
     
-    // Check if Pattern A is currently selected
-    const patternASelected = patternASeats.length > 0 && 
-                              patternASeats.every(seat => selectedSeats.includes(seat)) &&
-                              patternBSeats.every(seat => !selectedSeats.includes(seat))
+    // Check if Pattern A is currently selected (all available Pattern A seats are selected)
+    const patternAFullySelected = patternASeats.length > 0 && 
+                                   patternASeats.every(seat => selectedSeats.includes(seat))
     
-    // Check if Pattern B is currently selected
-    const patternBSelected = patternBSeats.length > 0 && 
-                              patternBSeats.every(seat => selectedSeats.includes(seat)) &&
-                              patternASeats.every(seat => !selectedSeats.includes(seat))
+    // Check if Pattern B is currently selected (all available Pattern B seats are selected)
+    const patternBFullySelected = patternBSeats.length > 0 && 
+                                   patternBSeats.every(seat => selectedSeats.includes(seat))
     
-    // First deselect all
+    // First deselect all currently selected seats
     if (selectedSeats.length > 0) {
-      selectedSeats.forEach(seat => {
+      [...selectedSeats].forEach(seat => {
         if (!isSeatOccupied(seat)) {
           onSeatSelect(seat)
         }
@@ -196,11 +194,14 @@ export default function SeatGrid({
     
     // Then select the appropriate pattern
     if (onSeatSelect) {
-      if (patternASelected) {
-        // If Pattern A was selected, now select Pattern B
+      if (patternAFullySelected && !patternBFullySelected && patternBSeats.length > 0) {
+        // If Pattern A was fully selected and Pattern B is available, select Pattern B
         patternBSeats.forEach(seat => onSeatSelect(seat))
+      } else if (patternBFullySelected && patternASeats.length > 0) {
+        // If Pattern B was fully selected, cycle back to Pattern A
+        patternASeats.forEach(seat => onSeatSelect(seat))
       } else {
-        // Default: select Pattern A (or if Pattern B was selected, cycle back to Pattern A)
+        // Default: select Pattern A
         patternASeats.forEach(seat => onSeatSelect(seat))
       }
     }
@@ -235,19 +236,17 @@ export default function SeatGrid({
       }
     }
     
-    // Check if Pattern A is currently selected
-    const patternASelected = patternASeats.length > 0 && 
-                              patternASeats.every(seat => selectedSeats.includes(seat)) &&
-                              patternBSeats.every(seat => !selectedSeats.includes(seat))
+    // Check if Pattern A is currently selected (all available Pattern A seats are selected)
+    const patternAFullySelected = patternASeats.length > 0 && 
+                                   patternASeats.every(seat => selectedSeats.includes(seat))
     
-    // Check if Pattern B is currently selected
-    const patternBSelected = patternBSeats.length > 0 && 
-                              patternBSeats.every(seat => selectedSeats.includes(seat)) &&
-                              patternASeats.every(seat => !selectedSeats.includes(seat))
+    // Check if Pattern B is currently selected (all available Pattern B seats are selected)
+    const patternBFullySelected = patternBSeats.length > 0 && 
+                                   patternBSeats.every(seat => selectedSeats.includes(seat))
     
-    // First deselect all
+    // First deselect all currently selected seats
     if (selectedSeats.length > 0) {
-      selectedSeats.forEach(seat => {
+      [...selectedSeats].forEach(seat => {
         if (!isSeatOccupied(seat)) {
           onSeatSelect(seat)
         }
@@ -256,11 +255,14 @@ export default function SeatGrid({
     
     // Then select the appropriate pattern
     if (onSeatSelect) {
-      if (patternASelected) {
-        // If Pattern A was selected, now select Pattern B
+      if (patternAFullySelected && !patternBFullySelected && patternBSeats.length > 0) {
+        // If Pattern A was fully selected and Pattern B is available, select Pattern B
         patternBSeats.forEach(seat => onSeatSelect(seat))
+      } else if (patternBFullySelected && patternASeats.length > 0) {
+        // If Pattern B was fully selected, cycle back to Pattern A
+        patternASeats.forEach(seat => onSeatSelect(seat))
       } else {
-        // Default: select Pattern A (or if Pattern B was selected, cycle back to Pattern A)
+        // Default: select Pattern A
         patternASeats.forEach(seat => onSeatSelect(seat))
       }
     }
@@ -290,19 +292,17 @@ export default function SeatGrid({
       }
     }
     
-    // Check if Pattern A is currently selected
-    const patternASelected = patternASeats.length > 0 && 
-                              patternASeats.every(seat => selectedSeats.includes(seat)) &&
-                              patternBSeats.every(seat => !selectedSeats.includes(seat))
+    // Check if Pattern A is currently selected (all available Pattern A seats are selected)
+    const patternAFullySelected = patternASeats.length > 0 && 
+                                   patternASeats.every(seat => selectedSeats.includes(seat))
     
-    // Check if Pattern B is currently selected
-    const patternBSelected = patternBSeats.length > 0 && 
-                              patternBSeats.every(seat => selectedSeats.includes(seat)) &&
-                              patternASeats.every(seat => !selectedSeats.includes(seat))
+    // Check if Pattern B is currently selected (all available Pattern B seats are selected)
+    const patternBFullySelected = patternBSeats.length > 0 && 
+                                   patternBSeats.every(seat => selectedSeats.includes(seat))
     
-    // First deselect all
+    // First deselect all currently selected seats
     if (selectedSeats.length > 0) {
-      selectedSeats.forEach(seat => {
+      [...selectedSeats].forEach(seat => {
         if (!isSeatOccupied(seat)) {
           onSeatSelect(seat)
         }
@@ -311,11 +311,14 @@ export default function SeatGrid({
     
     // Then select the appropriate pattern
     if (onSeatSelect) {
-      if (patternASelected) {
-        // If Pattern A was selected, now select Pattern B
+      if (patternAFullySelected && !patternBFullySelected && patternBSeats.length > 0) {
+        // If Pattern A was fully selected and Pattern B is available, select Pattern B
         patternBSeats.forEach(seat => onSeatSelect(seat))
+      } else if (patternBFullySelected && patternASeats.length > 0) {
+        // If Pattern B was fully selected, cycle back to Pattern A
+        patternASeats.forEach(seat => onSeatSelect(seat))
       } else {
-        // Default: select Pattern A (or if Pattern B was selected, cycle back to Pattern A)
+        // Default: select Pattern A
         patternASeats.forEach(seat => onSeatSelect(seat))
       }
     }
