@@ -31,6 +31,20 @@ router.get('/exams', authMiddleware(['admin']), async (req, res) => {
   }
 });
 
+// Bulk delete all exams (MUST be before /exams/:id to avoid matching "all" as an ID)
+router.delete('/exams/all', authMiddleware(['admin']), async (req, res) => {
+  try {
+    // Delete all exams (cascade will handle exam_subjects)
+    const result = await pool.query('DELETE FROM exams RETURNING id');
+    const deletedCount = result.rows.length;
+    
+    res.json({ message: `Successfully deleted ${deletedCount} exams`, count: deletedCount });
+  } catch (error) {
+    console.error('Error deleting all exams:', error);
+    res.status(500).json({ error: 'Failed to delete all exams' });
+  }
+});
+
 // Get single exam
 router.get('/exams/:id', authMiddleware(['admin']), async (req, res) => {
   try {
@@ -195,6 +209,39 @@ router.post('/exams/:id/subjects', authMiddleware(['admin']), async (req, res) =
       return res.status(400).json({ error: 'Subject name is required' });
     }
 
+    // Get exam details for validation
+    const examResult = await pool.query('SELECT exam_date, start_time, end_time FROM exams WHERE id = $1', [id]);
+    if (examResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Exam not found' });
+    }
+
+    const exam = examResult.rows[0];
+
+    // Validate subject date is not before exam date
+    if (exam_date) {
+      const examDate = new Date(exam.exam_date);
+      const subjectDate = new Date(exam_date);
+      if (subjectDate < examDate) {
+        return res.status(400).json({ error: 'Subject exam date cannot be before the exam date' });
+      }
+    }
+
+    // Validate subject end time does not exceed exam end time (only if both are on same date and times are provided)
+    if (exam_date && exam.exam_date && end_time && exam.end_time) {
+      const examDate = new Date(exam.exam_date).toDateString();
+      const subjectDate = new Date(exam_date).toDateString();
+      
+      if (examDate === subjectDate) {
+        // Compare times only if on the same date
+        const examEndMinutes = timeToMinutes(exam.end_time);
+        const subjectEndMinutes = timeToMinutes(end_time);
+        
+        if (subjectEndMinutes > examEndMinutes) {
+          return res.status(400).json({ error: 'Subject end time cannot exceed exam end time on the same date' });
+        }
+      }
+    }
+
     const result = await pool.query(
       `INSERT INTO exam_subjects (exam_id, subject_name, subject_code, exam_date, start_time, end_time)
        VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
@@ -207,6 +254,13 @@ router.post('/exams/:id/subjects', authMiddleware(['admin']), async (req, res) =
     res.status(500).json({ error: 'Failed to add subject' });
   }
 });
+
+// Helper function to convert time string (HH:MM) to minutes
+function timeToMinutes(timeString) {
+  if (!timeString) return 0;
+  const [hours, minutes] = timeString.split(':').map(Number);
+  return hours * 60 + minutes;
+}
 
 // Delete subject from exam
 router.delete('/exams/:examId/subjects/:subjectId', authMiddleware(['admin']), async (req, res) => {
@@ -225,20 +279,6 @@ router.delete('/exams/:examId/subjects/:subjectId', authMiddleware(['admin']), a
   } catch (error) {
     console.error('Error deleting subject:', error);
     res.status(500).json({ error: 'Failed to delete subject' });
-  }
-});
-
-// Bulk delete all exams
-router.delete('/exams/all', authMiddleware(['admin']), async (req, res) => {
-  try {
-    // Delete all exams (cascade will handle exam_subjects)
-    const result = await pool.query('DELETE FROM exams RETURNING id');
-    const deletedCount = result.rows.length;
-    
-    res.json({ message: `Successfully deleted ${deletedCount} exams`, count: deletedCount });
-  } catch (error) {
-    console.error('Error deleting all exams:', error);
-    res.status(500).json({ error: 'Failed to delete all exams' });
   }
 });
 

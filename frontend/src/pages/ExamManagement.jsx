@@ -130,6 +130,34 @@ export default function ExamManagement() {
     setLoading(true)
 
     try {
+      // Validate subject date is not before exam date
+      if (subjectForm.exam_date && currentExam.exam_date) {
+        const examDate = new Date(currentExam.exam_date)
+        const subjectDate = new Date(subjectForm.exam_date)
+        if (subjectDate < examDate) {
+          alert('Subject exam date cannot be before the exam date')
+          setLoading(false)
+          return
+        }
+      }
+
+      // Validate subject end time does not exceed exam end time (if on same date)
+      if (subjectForm.exam_date && subjectForm.end_time && currentExam.exam_date && currentExam.end_time) {
+        const examDate = new Date(currentExam.exam_date).toDateString()
+        const subjectDate = new Date(subjectForm.exam_date).toDateString()
+        
+        if (examDate === subjectDate) {
+          const examEndMinutes = timeToMinutes(currentExam.end_time)
+          const subjectEndMinutes = timeToMinutes(subjectForm.end_time)
+          
+          if (subjectEndMinutes > examEndMinutes) {
+            alert('Subject end time cannot exceed exam end time on the same date')
+            setLoading(false)
+            return
+          }
+        }
+      }
+
       const token = localStorage.getItem('token')
       const response = await fetch(`${API_BASE_URL}/exams/exams/${currentExam.id}/subjects`, {
         method: 'POST',
@@ -140,7 +168,10 @@ export default function ExamManagement() {
         body: JSON.stringify(subjectForm)
       })
 
-      if (!response.ok) throw new Error('Failed to add subject')
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to add subject')
+      }
 
       await loadExams()
       setSubjectModalOpen(false)
@@ -151,6 +182,13 @@ export default function ExamManagement() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // Helper function to convert time string (HH:MM) to minutes
+  function timeToMinutes(timeString) {
+    if (!timeString) return 0
+    const [hours, minutes] = timeString.split(':').map(Number)
+    return hours * 60 + minutes
   }
 
   async function handleDeleteExam(examId) {
@@ -482,8 +520,14 @@ export default function ExamManagement() {
               type="date"
               value={subjectForm.exam_date}
               onChange={(e) => setSubjectForm({...subjectForm, exam_date: e.target.value})}
+              min={currentExam?.exam_date?.split('T')[0]}
               className="w-full border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2 focus:border-blue-500 focus:outline-none"
             />
+            {currentExam?.exam_date && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Must be on or after {new Date(currentExam.exam_date).toLocaleDateString()}
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -508,6 +552,11 @@ export default function ExamManagement() {
                 onChange={(e) => setSubjectForm({...subjectForm, end_time: e.target.value})}
                 className="w-full border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2 focus:border-blue-500 focus:outline-none"
               />
+              {currentExam?.end_time && subjectForm.exam_date === currentExam?.exam_date?.split('T')[0] && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Must not exceed {currentExam.end_time}
+                </p>
+              )}
             </div>
           </div>
 
