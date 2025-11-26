@@ -1,6 +1,6 @@
 # Examination Seat Allotment System
 
-A comprehensive full-stack system for managing examination seat allotments with automatic seat assignment algorithm, built with Node.js, PostgreSQL, React, and Tailwind CSS.
+A comprehensive full-stack system for managing examination seat allotments with visual seat selection and pattern-based allocation, built with Node.js, PostgreSQL, React, and Tailwind CSS.
 
 ## 🌟 Features
 
@@ -8,37 +8,55 @@ A comprehensive full-stack system for managing examination seat allotments with 
 - **Admin Login:** Email and password-based authentication
 - **Student Login:** Roll number and date of birth-based authentication
 - JWT-based secure authentication system
+- Protected routes with automatic redirection to login
 
 ### Data Management
-- **Bulk Upload:** Import students, rooms, and invigilators via CSV/Excel files
+- **Bulk Upload:** Import students, rooms, and invigilators via CSV files
 - **Manual Entry:** Add individual records through user-friendly forms
 - **Real-time Updates:** Instant data synchronization across the system
+- **Data Validation:** Duplicate detection and update on re-upload
 
-### Seat Allotment
-- **Automatic Assignment:** Intelligent algorithm distributes students across rooms based on capacity
-- **Visual Seat Selection:** Interactive grid-based seat selection (like bus booking)
-- **Smart Allotment:** Advanced pattern-based seating with anti-cheating strategies
-  - Department/Year-based student segregation
-  - Criss-cross (zigzag) pattern or linear arrangement
-  - Configurable students per bench (2 or 3)
-  - Automatic invigilator assignment
-  - Vacancy warnings for rooms without invigilators
-- **Bench-Based Layout:** Configure rooms with number of benches and seats per bench
-- **Sorted by Roll Number:** Students assigned in ascending order
-- **Manual Modifications:** Admin can update seat assignments as needed
+### Visual Seat Allotment
+- **Interactive Seat Grid:** Visual seat selection interface (like movie/bus booking)
+- **Pattern-Based Selection:**
+  - Pattern 1: Alternate columns (1, 3, 5, ...)
+  - Pattern 2: Alternate rows (A, C, E, ...)
+  - Pattern 3: Checkerboard pattern (both rows and columns)
+- **Quick Selection Tools:**
+  - Select All / Deselect All
+  - Row-wise selection (click → arrow)
+  - Column-wise selection (click ↓ arrow)
+- **Flexible Student Assignment:**
+  - Department-based filtering
+  - Search by name, roll number, or department
+  - Select All / Deselect All students
+  - Assign fewer students than seats selected
+- **Vertical Seat Numbering:** Seats numbered column-wise for better organization
+- **Real-time Status:** Occupied (green), Selected (blue), Available (white)
+
+### Seat Assignment
+- **Manual Allotment:** Create seat assignments through visual interface
+- **Bench-Based Layout:** Configure rooms with benches and seats per bench
+- **Edit & Delete:** Modify or remove existing seat assignments
 - **Statistics Dashboard:** Real-time allotment progress tracking
 
 ### Invigilator Management
 - **Room Assignment:** Assign invigilators to specific examination rooms
-- **Visual Assignment Page:** Dedicated interface for managing invigilator-room mappings
-- **Real-time Updates:** Instantly view and modify assignments
-- **Assignment Statistics:** Track assigned vs unassigned invigilators
+- **Room-specific Assignments:** Each invigilator linked to a room
+- **Real-time Updates:** View and modify assignments instantly
 
 ### Export & Reports
-- **Excel Export:** Download complete allotment data as spreadsheet
-- **PDF Reports:** Generate formatted allotment documents
-- **Room-wise PDF Reports:** Individual room allotment sheets with invigilator details
-- **Automated Downloads:** Browser-based file downloads with proper authentication
+- **Department-wise Reports:**
+  - CSV export for each department
+  - PDF reports with formatted tables
+  - Student count and timestamp
+- **Room-wise Reports:**
+  - CSV export for each room
+  - PDF reports with professional layout
+  - Color-coded headers (green for departments, purple for rooms)
+- **Filtered Exports:** Export current search/filter results
+- **Complete Export:** Excel/PDF export of all allotments
+- **Automated Downloads:** Browser-based file downloads with proper naming
 
 ## 🛠️ Tech Stack
 
@@ -52,10 +70,11 @@ A comprehensive full-stack system for managing examination seat allotments with 
 
 ### Frontend
 - **Framework:** React 18 with Vite
-- **Styling:** Tailwind CSS
-- **Routing:** React Router DOM v6
+- **Styling:** Tailwind CSS with dark mode support
+- **Routing:** React Router DOM v6 with protected routes
 - **State Management:** React Context API
 - **API Communication:** Native Fetch API
+- **PDF Generation:** jsPDF with autoTable plugin
 
 ## 📋 Prerequisites
 
@@ -159,36 +178,45 @@ Examination_Seat_Allotment_system/
 │   │   └── auth.js              # JWT authentication middleware
 │   ├── routes/
 │   │   ├── auth.js              # Authentication endpoints
-│   │   ├── upload.js            # File upload & manual add endpoints
-│   │   ├── allotment.js         # Seat allotment endpoints
-│   │   └── export.js            # Export endpoints
+│   │   ├── upload.js            # File upload & data management
+│   │   ├── allotment.js         # Seat allotment CRUD operations
+│   │   └── export.js            # Export endpoints (Excel/PDF)
 │   └── server.js                # Express application entry point
 ├── frontend/                     # React frontend
 │   ├── src/
 │   │   ├── components/
+│   │   │   ├── Header.jsx       # Top navigation header
 │   │   │   ├── Modal.jsx        # Reusable modal component
+│   │   │   ├── SeatGrid.jsx     # Visual seat selection grid
 │   │   │   └── Sidebar.jsx      # Navigation sidebar
 │   │   ├── context/
-│   │   │   ├── AuthContext.jsx  # Authentication state management
-│   │   │   └── DataContext.jsx  # Data state management
+│   │   │   └── AuthContext.jsx  # Authentication state management
 │   │   ├── pages/
-│   │   │   ├── Login.jsx        # Login page
-│   │   │   ├── Dashboard.jsx    # Admin dashboard with statistics
-│   │   │   ├── RegisterStudents.jsx  # Student management
-│   │   │   ├── RegisterStaff.jsx     # Invigilator management
-│   │   │   ├── Rooms.jsx             # Room management
-│   │   │   └── FinalAllotment.jsx    # Seat allotment page
+│   │   │   ├── AllotmentReports.jsx   # Reports with CSV/PDF exports
+│   │   │   ├── Dashboard.jsx          # Admin dashboard with statistics
+│   │   │   ├── DiagnosticPage.jsx     # System diagnostics
+│   │   │   ├── InvigilatorAssignment.jsx  # Invigilator management
+│   │   │   ├── Login.jsx              # Login page
+│   │   │   ├── RegisterStaff.jsx      # Invigilator registration
+│   │   │   ├── RegisterStudents.jsx   # Student management
+│   │   │   ├── Rooms.jsx              # Room management
+│   │   │   ├── SeatAllotment.jsx      # Seat allotment wrapper
+│   │   │   └── VisualSeatSelection.jsx # Visual seat selection interface
 │   │   ├── services/
 │   │   │   └── api.js           # API service layer
-│   │   └── App.jsx              # Main application component
+│   │   ├── App.jsx              # Main application with routing
+│   │   └── main.jsx             # React entry point
 │   ├── index.html
-│   ├── tailwind.config.cjs
-│   └── vite.config.js
+│   ├── tailwind.config.js
+│   ├── vite.config.js
+│   └── package.json             # Frontend dependencies
 ├── sample-data/                  # Sample CSV files for testing
 │   ├── students.csv
 │   ├── rooms.csv
-│   └── invigilators.csv
+│   ├── invigilators.csv
+│   └── seat_allotments.csv
 ├── uploads/                      # Temporary upload directory (auto-created)
+├── .env                          # Environment variables (create from .env.example)
 ├── .env.example                  # Environment template
 ├── package.json                  # Backend dependencies
 └── README.md                     # This file
@@ -201,39 +229,49 @@ Examination_Seat_Allotment_system/
 1. **users** - Admin and student login credentials
    - id, email, password, role
 
-2. **students** - Student information
-   - id, user_id, name, roll_no, date_of_birth, department, academic_year
+3. **students** - Student information
+   - id, name, roll_no, date_of_birth, department, academic_year
 
-3. **rooms** - Examination room details
+4. **rooms** - Examination room details
    - id, room_no, capacity, floor, number_of_benches, seats_per_bench
 
-4. **invigilators** - Invigilator information
-   - id, name, invigilator_id, room_id (foreign key to rooms, unique constraint)
+5. **invigilators** - Invigilator information
+   - id, name, invigilator_id, room_id (foreign key to rooms)
 
-5. **seat_allotments** - Seat assignment records
-   - id, student_id, room_id, seat_number, allotment_date
+6. **seat_allotments** - Seat assignment records
+   - id, student_id, room_id, seat_number, subject, allotment_date
 
-## 🎨 Smart Allotment Patterns
+## 🎨 Visual Seat Selection Features
 
-### Criss-Cross Pattern (Zigzag)
-Alternates students from different departments/groups to prevent cheating:
-```
-Bench 1: [CS] [IT] [CS] [IT] [CS] [IT]
-Bench 2: [IT] [CS] [IT] [CS] [IT] [CS]
-Bench 3: [CS] [IT] [CS] [IT] [CS] [IT]
-Bench 4: [IT] [CS] [IT] [CS] [IT] [CS]
-```
-**Benefits:** Maximum separation between students from same department
+### Selection Patterns
+The system provides three intelligent selection patterns to help administrators quickly select seats:
 
-### Linear Pattern (Strict)
-Groups students by department, fills one section before moving to next:
-```
-Bench 1: [CS] [CS] [CS] [CS] [CS] [CS]
-Bench 2: [CS] [CS] [CS] [CS] [CS] [CS]
-Bench 3: [IT] [IT] [IT] [IT] [IT] [IT]
-Bench 4: [IT] [IT] [IT] [IT] [IT] [IT]
-```
-**Benefits:** Easier to manage, students from same department sit together
+1. **Alternate Columns Pattern:**
+   - Selects columns 1, 3, 5, 7, ... (odd columns)
+   - Useful for maintaining social distancing
+   - Example: Column-wise spacing between students
+
+2. **Alternate Rows Pattern:**
+   - Selects rows A, C, E, G, ... (alternate rows)
+   - Useful for row-based distancing
+   - Example: Every other row occupied
+
+3. **Checkerboard Pattern:**
+   - Alternates both rows and columns
+   - Maximum spacing between students
+   - Example: Like a checkerboard layout
+
+### Selection Tools
+- **Select All:** Quickly select all available seats in a room
+- **Deselect All:** Clear current selection
+- **Row Selection:** Click → arrow to toggle entire row
+- **Column Selection:** Click ↓ arrow to toggle entire column
+- **Individual Seats:** Click any seat to toggle selection
+
+### Visual Indicators
+- **White:** Available seat (can be selected)
+- **Blue:** Currently selected seat
+- **Green:** Occupied seat (already assigned to a student)
 
 ## 🎯 Usage Guide
 
@@ -242,53 +280,40 @@ Bench 4: [IT] [IT] [IT] [IT] [IT] [IT]
 1. **Login:** Use admin credentials (default: admin@example.com / admin123)
 
 2. **Upload Data:**
-   - Navigate to "Manage Students" and upload student CSV/Excel or add manually
-   - Navigate to "Rooms" and upload room CSV/Excel or add manually
-   - Navigate to "Invigilators" and upload invigilator CSV/Excel or add manually
+   - Navigate to "Manage Students" and upload student CSV or add manually
+   - Navigate to "Rooms" and upload room CSV or add manually
+   - Navigate to "Invigilators" and upload invigilator CSV or add manually
 
-3. **Generate Allotment:**
-   - **Option A - Automatic Allotment:**
-     - Go to "Seat Allotment" page
-     - Click "Generate Allotments" button
-     - System automatically assigns seats to all students
-   - **Option B - Visual Seat Selection:**
-     - Go to "Visual Seat Selection" page
-     - Select a room from the dropdown
-     - Click on seats in the grid to select them (like bus booking)
-     - Click "Next" and select students to assign
-     - Click "Assign Seats" to finalize
-   - **Option C - Smart Allotment (Recommended):**
-     - Go to "Smart Allotment" page
-     - Select segregation criteria (Department or Year of Joining)
-     - Choose seating pattern:
-       - Criss-Cross: Alternates students from different groups (prevents cheating)
-       - Linear/Strict: Fills one group completely before next
-     - Set students per bench (2 or 3)
-     - Optionally select specific rooms or use all available
-     - Click "Start Smart Allotment"
-     - System automatically:
-       - Segregates students by selected criteria
-       - Applies chosen seating pattern
-       - Assigns invigilators to rooms
-       - Shows warnings for rooms without invigilators
+3. **Visual Seat Assignment:**
+   - Go to "Seat Allotment" page
+   - Select a room from the dropdown
+   - Use pattern buttons for quick selection:
+     - **Pattern 1:** Select alternate columns (1, 3, 5, ...)
+     - **Pattern 2:** Select alternate rows (A, C, E, ...)
+     - **Pattern 3:** Select checkerboard pattern
+   - Or click individual seats / use row/column arrows
+   - Click "Next: Select Students"
+   - Filter students by department if needed
+   - Use "Select All" to quickly select filtered students
+   - Click "Assign Seats" to finalize
+   - Unassigned seats are automatically left empty
 
 4. **Assign Invigilators:**
    - Navigate to "Assign Invigilators" page
    - View all invigilators and their current assignments
    - Use dropdown to assign invigilators to specific rooms
-   - **Note:** Each room can only be assigned to one invigilator. Already assigned rooms are disabled in the dropdown.
    - Assignments are saved immediately
 
-5. **View & Export:**
-   - View complete allotment table with room and seat details
-   - Click "Export Excel" for spreadsheet download
-   - Click "Export PDF" for formatted document
-   - Use "Export by Room" dropdown for room-specific PDF reports
-   - Navigate to "Reports" page to view:
-     - Student allotments by room with seat numbers
-     - Invigilator assignments with student counts
-     - Vacant room warnings (rooms without invigilators highlighted in red)
-     - Export separate CSV reports for students and invigilators
+5. **View & Export Reports:**
+   - Navigate to "Reports" page
+   - View statistics: total allotments, departments, rooms
+   - Filter by search term, department, or room
+   - Export options:
+     - **Filtered View:** CSV export button in header
+     - **Department-wise:** CSV and PDF buttons on each department card
+     - **Room-wise:** CSV and PDF buttons on each room card
+   - PDF reports include formatted tables with timestamps
+   - Files download with proper names (e.g., `Computer_Science_allotments.pdf`)
 
 ### For Students
 
@@ -320,6 +345,15 @@ Dr. Robert Smith,INV001
 Prof. Maria Johnson,INV002
 ```
 
+### seat_allotments.csv
+```csv
+student_id,room_id,seat_number,subject
+1,1,1,Mathematics
+2,1,7,Mathematics
+3,1,13,Mathematics
+```
+Note: Used for sample data import. IDs must match existing students and rooms.
+
 ## 🔐 API Endpoints
 
 ### Authentication
@@ -339,22 +373,11 @@ Prof. Maria Johnson,INV002
 - `PATCH /api/upload/invigilators/:id/assign` - Assign invigilator to room (validates uniqueness)
 
 ### Seat Allotment (Admin Only)
-- `POST /api/allotment/allot` - Trigger automatic seat allotment
-- `GET /api/allotment/allotments` - Get all allotments
+- `POST /api/allotment/create` - Create single seat allotment
+- `GET /api/allotment/allotments` - Get all allotments (with student/room details)
 - `GET /api/allotment/statistics` - Get allotment statistics
 - `PUT /api/allotment/allotments/:id` - Update seat assignment
 - `DELETE /api/allotment/allotments/:id` - Delete seat assignment
-
-### Smart Allotment (Admin Only)
-- `POST /api/smart-allotment/smart-allot` - Trigger pattern-based smart allotment
-  - Body: `{ segregate_by, students_per_bench, pattern, room_ids }`
-  - Segregates students by department or year
-  - Applies criss-cross or linear seating pattern
-  - Auto-assigns invigilators to rooms
-- `GET /api/smart-allotment/allotment-report` - Get comprehensive reports
-  - Returns student allotments with room/seat details
-  - Returns invigilator assignments with student counts
-  - Highlights vacant rooms without invigilators
 
 ### Student Endpoints
 - `GET /api/allotment/my-seat` - Get student's assigned seat
@@ -362,7 +385,6 @@ Prof. Maria Johnson,INV002
 ### Export (Admin Only)
 - `GET /api/export/allotments/excel` - Download Excel report (all allotments)
 - `GET /api/export/allotments/pdf` - Download PDF report (all allotments)
-- `GET /api/export/allotments/pdf/room/:roomId` - Download room-wise PDF report with invigilator details
 
 ## 🔒 Security Features
 
@@ -401,21 +423,24 @@ Prof. Maria Johnson,INV002
 ## 📝 Development Notes
 
 - Default admin credentials are created during database initialization
-- Students can login using their roll number and date of birth
-- Student passwords are auto-generated from date of birth
+- Students can login using their roll number and date of birth (format: YYYY-MM-DD)
 - Files uploaded are temporarily stored and deleted after processing
 - Duplicate entries (by roll_no/room_no/invigilator_id) will update existing records
+- Seat numbering follows vertical pattern (column-wise: top to bottom, left to right)
+- Frontend uses jsPDF library for client-side PDF generation
+- All routes except /login require authentication
 
 ## 🚧 Future Enhancements
 
 - Email notifications for seat allotments
 - SMS integration for student notifications
 - Multi-session exam support
-- Department-wise seat clustering
-- Invigilator room assignment
-- Student attendance tracking
-- Analytics dashboard
-- Bulk student account management
+- Automatic allotment algorithm with department clustering
+- Student attendance tracking during exams
+- Analytics dashboard with visualizations
+- Bulk operations for seat modifications
+- Mobile-responsive improvements
+- Print-optimized hall tickets
 
 ## 📜 License
 
