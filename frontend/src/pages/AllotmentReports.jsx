@@ -321,10 +321,10 @@ const AllotmentReports = () => {
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            📊 Allotment Reports
+            📊 Allotment Reports & Analytics
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
-            View seat allotments by department, room, or all allotments
+            View comprehensive seat allotments by department or room with export options
           </p>
         </div>
 
