@@ -277,19 +277,23 @@ router.post('/exams/:id/subjects', authMiddleware(['admin']), async (req, res) =
       }
     }
 
-    // Validate subject end time does not exceed exam end time (only if both are on same date and times are provided)
-    if (exam_date && exam.exam_date && end_time && exam.end_time) {
-      const examDate = new Date(exam.exam_date).toDateString();
-      const subjectDate = new Date(exam_date).toDateString();
+    // Validate start time is not before exam start time (applies to all exam dates)
+    if (start_time && exam.start_time) {
+      const examStartMinutes = timeToMinutes(exam.start_time);
+      const subjectStartMinutes = timeToMinutes(start_time);
       
-      if (examDate === subjectDate) {
-        // Compare times only if on the same date
-        const examEndMinutes = timeToMinutes(exam.end_time);
-        const subjectEndMinutes = timeToMinutes(end_time);
-        
-        if (subjectEndMinutes > examEndMinutes) {
-          return res.status(400).json({ error: 'Subject end time cannot exceed exam end time on the same date' });
-        }
+      if (subjectStartMinutes < examStartMinutes) {
+        return res.status(400).json({ error: 'Subject start time cannot be before exam start time' });
+      }
+    }
+
+    // Validate subject end time does not exceed exam end time (applies to all exam dates)
+    if (end_time && exam.end_time) {
+      const examEndMinutes = timeToMinutes(exam.end_time);
+      const subjectEndMinutes = timeToMinutes(end_time);
+      
+      if (subjectEndMinutes > examEndMinutes) {
+        return res.status(400).json({ error: 'Subject end time cannot exceed exam end time' });
       }
     }
 
@@ -413,7 +417,17 @@ router.post('/exams/:id/subjects/upload', authMiddleware(['admin']), upload.sing
             }
           }
 
-          // Validate subject end time does not exceed exam end time (if on same date)
+      // Validate start time is not before exam start time (applies to all exam dates)
+      if (start_time && exam.start_time) {
+        const examStartMinutes = timeToMinutes(exam.start_time);
+        const subjectStartMinutes = timeToMinutes(start_time);
+        
+        if (subjectStartMinutes < examStartMinutes) {
+          errors.push({ subject: subject_name, error: 'Subject start time cannot be before exam start time' });
+          errorCount++;
+          continue;
+        }
+      }          // Validate subject end time does not exceed exam end time (if on same date)
           if (parsedExamDate && exam.exam_date && end_time && exam.end_time) {
             const examDateStr = new Date(exam.exam_date).toDateString();
             const subjectDateStr = new Date(parsedExamDate).toDateString();

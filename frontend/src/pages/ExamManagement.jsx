@@ -211,20 +211,27 @@ export default function ExamManagement() {
         }
       }
 
-      // Validate subject end time does not exceed exam end time (if on same date)
-      if (subjectForm.exam_date && subjectForm.end_time && currentExam.exam_date && currentExam.end_time) {
-        const examDate = new Date(currentExam.exam_date).toDateString()
-        const subjectDate = new Date(subjectForm.exam_date).toDateString()
+      // Validate start time is not before exam start time (applies to all exam dates)
+      if (subjectForm.start_time && currentExam.start_time) {
+        const examStartMinutes = timeToMinutes(currentExam.start_time)
+        const subjectStartMinutes = timeToMinutes(subjectForm.start_time)
         
-        if (examDate === subjectDate) {
-          const examEndMinutes = timeToMinutes(currentExam.end_time)
-          const subjectEndMinutes = timeToMinutes(subjectForm.end_time)
-          
-          if (subjectEndMinutes > examEndMinutes) {
-            alert('Subject end time cannot exceed exam end time on the same date')
-            setLoading(false)
-            return
-          }
+        if (subjectStartMinutes < examStartMinutes) {
+          alert('Subject start time cannot be before exam start time')
+          setLoading(false)
+          return
+        }
+      }
+
+      // Validate subject end time does not exceed exam end time (applies to all exam dates)
+      if (subjectForm.end_time && currentExam.end_time) {
+        const examEndMinutes = timeToMinutes(currentExam.end_time)
+        const subjectEndMinutes = timeToMinutes(subjectForm.end_time)
+        
+        if (subjectEndMinutes > examEndMinutes) {
+          alert('Subject end time cannot exceed exam end time')
+          setLoading(false)
+          return
         }
       }
 
@@ -259,6 +266,15 @@ export default function ExamManagement() {
     if (!timeString) return 0
     const [hours, minutes] = timeString.split(':').map(Number)
     return hours * 60 + minutes
+  }
+
+  // Helper function to convert 24-hour time to 12-hour format with AM/PM
+  function convertTo12Hour(time24) {
+    if (!time24) return ''
+    const [hours, minutes] = time24.split(':').map(Number)
+    const period = hours >= 12 ? 'PM' : 'AM'
+    const hours12 = hours % 12 || 12
+    return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`
   }
 
   async function handleDeleteExam(examId) {
@@ -399,8 +415,8 @@ export default function ExamManagement() {
                   </h2>
                   <div className="flex gap-4 text-sm text-gray-600 dark:text-gray-400">
                     <span>📅 {new Date(exam.exam_date).toLocaleDateString()}</span>
-                    {exam.start_time && <span>🕐 {exam.start_time}</span>}
-                    {exam.end_time && <span>🕐 {exam.end_time}</span>}
+                    {exam.start_time && <span>🕐 {convertTo12Hour(exam.start_time)}</span>}
+                    {exam.end_time && <span>🕐 {convertTo12Hour(exam.end_time)}</span>}
                   </div>
                   {exam.description && (
                     <p className="mt-2 text-gray-600 dark:text-gray-400">{exam.description}</p>
@@ -452,7 +468,7 @@ export default function ExamManagement() {
                           )}
                           <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                             {subject.exam_date && <span>📅 {new Date(subject.exam_date).toLocaleDateString()}</span>}
-                            {subject.start_time && <span className="ml-3">🕐 {subject.start_time}</span>}
+                            {subject.start_time && <span className="ml-3">🕐 {convertTo12Hour(subject.start_time)}</span>}
                           </div>
                         </div>
                         <button
@@ -617,6 +633,11 @@ export default function ExamManagement() {
                 onChange={(e) => setSubjectForm({...subjectForm, start_time: e.target.value})}
                 className="w-full border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2 focus:border-blue-500 focus:outline-none"
               />
+              {currentExam?.start_time && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Must not be before {convertTo12Hour(currentExam.start_time)}
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -628,9 +649,9 @@ export default function ExamManagement() {
                 onChange={(e) => setSubjectForm({...subjectForm, end_time: e.target.value})}
                 className="w-full border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2 focus:border-blue-500 focus:outline-none"
               />
-              {currentExam?.end_time && subjectForm.exam_date === currentExam?.exam_date?.split('T')[0] && (
+              {currentExam?.end_time && (
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Must not exceed {currentExam.end_time}
+                  Must not exceed {convertTo12Hour(currentExam.end_time)}
                 </p>
               )}
             </div>
