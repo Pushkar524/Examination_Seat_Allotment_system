@@ -101,8 +101,13 @@ const AllotmentReports = () => {
       return;
     }
 
+    // Sort by roll number
+    const sortedAllotments = [...filteredAllotments].sort((a, b) => 
+      a.roll_no.localeCompare(b.roll_no)
+    );
+
     const headers = ['Roll No', 'Student Name', 'Department', 'Room No', 'Floor', 'Seat No'];
-    const rows = filteredAllotments.map(a => [
+    const rows = sortedAllotments.map(a => [
       a.roll_no,
       a.student_name,
       a.department,
@@ -141,8 +146,13 @@ const AllotmentReports = () => {
     const deptAllotments = groupedByDepartment[dept];
     if (!deptAllotments || deptAllotments.length === 0) return;
 
+    // Sort by roll number
+    const sortedAllotments = [...deptAllotments].sort((a, b) => 
+      a.roll_no.localeCompare(b.roll_no)
+    );
+
     const headers = ['Roll No', 'Student Name', 'Department', 'Room No', 'Floor', 'Seat No'];
-    const rows = deptAllotments.map(a => [
+    const rows = sortedAllotments.map(a => [
       a.roll_no,
       a.student_name,
       a.department,
@@ -172,8 +182,13 @@ const AllotmentReports = () => {
     const roomAllotments = groupedByRoom[room];
     if (!roomAllotments || roomAllotments.length === 0) return;
 
+    // Sort by roll number
+    const sortedAllotments = [...roomAllotments].sort((a, b) => 
+      a.roll_no.localeCompare(b.roll_no)
+    );
+
     const headers = ['Roll No', 'Student Name', 'Department', 'Room No', 'Floor', 'Seat No'];
-    const rows = roomAllotments.map(a => [
+    const rows = sortedAllotments.map(a => [
       a.roll_no,
       a.student_name,
       a.department,
@@ -203,6 +218,11 @@ const AllotmentReports = () => {
     const deptAllotments = groupedByDepartment[dept];
     if (!deptAllotments || deptAllotments.length === 0) return;
 
+    // Sort by roll number
+    const sortedAllotments = [...deptAllotments].sort((a, b) => 
+      a.roll_no.localeCompare(b.roll_no)
+    );
+
     const doc = new jsPDF();
     
     // Add title
@@ -220,7 +240,7 @@ const AllotmentReports = () => {
     autoTable(doc, {
       startY: 45,
       head: [['Roll No', 'Student Name', 'Department', 'Room No', 'Floor', 'Seat No']],
-      body: deptAllotments.map(a => [
+      body: sortedAllotments.map(a => [
         a.roll_no,
         a.student_name,
         a.department,
@@ -242,6 +262,11 @@ const AllotmentReports = () => {
     const roomAllotments = groupedByRoom[room];
     if (!roomAllotments || roomAllotments.length === 0) return;
 
+    // Sort by roll number
+    const sortedAllotments = [...roomAllotments].sort((a, b) => 
+      a.roll_no.localeCompare(b.roll_no)
+    );
+
     const doc = new jsPDF();
     
     // Add title
@@ -259,7 +284,7 @@ const AllotmentReports = () => {
     autoTable(doc, {
       startY: 45,
       head: [['Roll No', 'Student Name', 'Department', 'Room No', 'Floor', 'Seat No']],
-      body: roomAllotments.map(a => [
+      body: sortedAllotments.map(a => [
         a.roll_no,
         a.student_name,
         a.department,
