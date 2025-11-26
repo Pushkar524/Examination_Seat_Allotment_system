@@ -152,6 +152,32 @@ export default function RegisterStaff(){
     }
   }
 
+  async function handleDeleteAll() {
+    if (invigilators.length === 0) {
+      alert('No invigilators to delete')
+      return
+    }
+
+    if (!window.confirm(`Are you sure you want to delete ALL ${invigilators.length} invigilators? This action cannot be undone!`)) {
+      return
+    }
+
+    if (!window.confirm('This will permanently delete all invigilators. Are you absolutely sure?')) {
+      return
+    }
+
+    try {
+      setLoading(true)
+      const result = await uploadAPI.deleteAllInvigilators()
+      await loadInvigilators()
+      alert(result.message || 'All invigilators deleted successfully!')
+    } catch (error) {
+      alert(error.message || 'Failed to delete all invigilators')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div>
       <h2 className="text-2xl font-semibold mb-4 dark:text-white">REGISTER INVIGILATORS</h2>
@@ -172,6 +198,14 @@ export default function RegisterStaff(){
                 className="bg-green-400 hover:bg-green-500 px-4 py-2 rounded transition duration-200 flex items-center gap-2"
               >
                 📁 Import Excel/CSV
+              </button>
+              <button 
+                onClick={handleDeleteAll}
+                disabled={loading || invigilators.length === 0}
+                className="bg-red-500 hover:bg-red-600 disabled:bg-gray-400 disabled:cursor-not-allowed px-4 py-2 rounded transition duration-200 flex items-center gap-2 text-white font-semibold"
+              >
+                <span>🗑️</span>
+                {loading ? 'Deleting...' : 'Delete All'}
               </button>
             </div>
           )}

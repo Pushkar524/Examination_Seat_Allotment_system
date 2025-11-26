@@ -161,6 +161,32 @@ export default function RegisterStudents(){
     }
   }
 
+  async function handleDeleteAll() {
+    if (students.length === 0) {
+      alert('No students to delete')
+      return
+    }
+
+    if (!window.confirm(`Are you sure you want to delete ALL ${students.length} students? This action cannot be undone!`)) {
+      return
+    }
+
+    if (!window.confirm('This will permanently delete all students and their user accounts. Are you absolutely sure?')) {
+      return
+    }
+
+    try {
+      setLoading(true)
+      const result = await uploadAPI.deleteAllStudents()
+      await loadStudents()
+      alert(result.message || 'All students deleted successfully!')
+    } catch (error) {
+      alert(error.message || 'Failed to delete all students')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div>
       <h2 className="text-2xl font-semibold mb-4 dark:text-white">REGISTER STUDENTS</h2>
@@ -181,6 +207,14 @@ export default function RegisterStudents(){
                 className="bg-green-400 hover:bg-green-500 px-4 py-2 rounded transition duration-200 flex items-center gap-2"
               >
                 📁 Import Excel/CSV
+              </button>
+              <button 
+                onClick={handleDeleteAll}
+                disabled={loading || students.length === 0}
+                className="bg-red-500 hover:bg-red-600 disabled:bg-gray-400 disabled:cursor-not-allowed px-4 py-2 rounded transition duration-200 flex items-center gap-2 text-white font-semibold"
+              >
+                <span>🗑️</span>
+                {loading ? 'Deleting...' : 'Delete All'}
               </button>
             </div>
           )}

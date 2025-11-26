@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import Modal from '../components/Modal'
+import { examsAPI } from '../services/api'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
 
@@ -200,6 +201,33 @@ export default function ExamManagement() {
     }
   }
 
+  async function handleDeleteAllExams() {
+    if (exams.length === 0) {
+      alert('No exams to delete')
+      return
+    }
+
+    if (!window.confirm(`Are you sure you want to delete ALL ${exams.length} exams? This will also delete all associated subjects!`)) {
+      return
+    }
+
+    if (!window.confirm('This will permanently delete all exams and their subjects. Are you absolutely sure?')) {
+      return
+    }
+
+    try {
+      setLoading(true)
+      const result = await examsAPI.deleteAllExams()
+      await loadExams()
+      alert(result.message || 'All exams deleted successfully!')
+    } catch (error) {
+      console.error('Error deleting all exams:', error)
+      alert(error.message || 'Failed to delete all exams')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   if (!isAdmin) {
     return (
       <div className="max-w-4xl mx-auto p-6">
@@ -222,12 +250,22 @@ export default function ExamManagement() {
             Create and manage exams with subjects and schedules
           </p>
         </div>
-        <button
-          onClick={openCreateModal}
-          className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition-colors flex items-center gap-2"
-        >
-          <span>➕</span> Create New Exam
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={openCreateModal}
+            className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition-colors flex items-center gap-2"
+          >
+            <span>➕</span> Create New Exam
+          </button>
+          <button
+            onClick={handleDeleteAllExams}
+            disabled={loading || exams.length === 0}
+            className="px-6 py-3 bg-red-500 hover:bg-red-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors flex items-center gap-2"
+          >
+            <span>🗑️</span>
+            {loading ? 'Deleting...' : 'Delete All'}
+          </button>
+        </div>
       </div>
 
       {/* Exams List */}

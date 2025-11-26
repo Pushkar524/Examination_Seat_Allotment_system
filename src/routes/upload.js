@@ -646,4 +646,66 @@ router.put('/invigilators/:id', authMiddleware(['admin']), async (req, res) => {
   }
 });
 
+// Bulk delete all students
+router.delete('/students/all', authMiddleware(['admin']), async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    
+    // Get all user IDs for students
+    const studentResult = await client.query('SELECT user_id FROM students WHERE user_id IS NOT NULL');
+    const userIds = studentResult.rows.map(row => row.user_id);
+    
+    // Delete all students (cascade will handle seat_allotments)
+    const deleteResult = await client.query('DELETE FROM students RETURNING id');
+    const deletedCount = deleteResult.rows.length;
+    
+    // Delete all student user accounts
+    if (userIds.length > 0) {
+      await client.query('DELETE FROM users WHERE id = ANY($1)', [userIds]);
+    }
+    
+    await client.query('COMMIT');
+    res.json({ message: `Successfully deleted ${deletedCount} students`, count: deletedCount });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Delete all students error:', error);
+    res.status(500).json({ error: 'Failed to delete all students' });
+  } finally {
+    client.release();
+  }
+});
+
+// Bulk delete all rooms
+router.delete('/rooms/all', authMiddleware(['admin']), async (req, res) => {
+  try {
+    // Check if any rooms have allotments
+    const checkResult = await pool.query('SELECT COUNT(*) FROM seat_allotments');
+    if (parseInt(checkResult.rows[0].count) > 0) {
+      return res.status(400).json({ error: 'Cannot delete rooms while seat allotments exist. Delete allotments first.' });
+    }
+    
+    const result = await pool.query('DELETE FROM rooms RETURNING id');
+    const deletedCount = result.rows.length;
+    
+    res.json({ message: `Successfully deleted ${deletedCount} rooms`, count: deletedCount });
+  } catch (error) {
+    console.error('Delete all rooms error:', error);
+    res.status(500).json({ error: 'Failed to delete all rooms' });
+  }
+});
+
+// Bulk delete all invigilators
+router.delete('/invigilators/all', authMiddleware(['admin']), async (req, res) => {
+  try {
+    const result = await pool.query('DELETE FROM invigilators RETURNING id');
+    const deletedCount = result.rows.length;
+    
+    res.json({ message: `Successfully deleted ${deletedCount} invigilators`, count: deletedCount });
+  } catch (error) {
+    console.error('Delete all invigilators error:', error);
+    res.status(500).json({ error: 'Failed to delete all invigilators' });
+  }
+});
+
 module.exports = router;

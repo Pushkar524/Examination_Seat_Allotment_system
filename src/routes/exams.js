@@ -228,4 +228,18 @@ router.delete('/exams/:examId/subjects/:subjectId', authMiddleware(['admin']), a
   }
 });
 
+// Bulk delete all exams
+router.delete('/exams/all', authMiddleware(['admin']), async (req, res) => {
+  try {
+    // Delete all exams (cascade will handle exam_subjects)
+    const result = await pool.query('DELETE FROM exams RETURNING id');
+    const deletedCount = result.rows.length;
+    
+    res.json({ message: `Successfully deleted ${deletedCount} exams`, count: deletedCount });
+  } catch (error) {
+    console.error('Error deleting all exams:', error);
+    res.status(500).json({ error: 'Failed to delete all exams' });
+  }
+});
+
 module.exports = router;

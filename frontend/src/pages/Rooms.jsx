@@ -175,6 +175,32 @@ export default function Rooms(){
     }
   }
 
+  async function handleDeleteAll() {
+    if (rooms.length === 0) {
+      alert('No rooms to delete')
+      return
+    }
+
+    if (!window.confirm(`Are you sure you want to delete ALL ${rooms.length} rooms? This action cannot be undone!`)) {
+      return
+    }
+
+    if (!window.confirm('This will permanently delete all rooms. Are you absolutely sure?')) {
+      return
+    }
+
+    try {
+      setLoading(true)
+      const result = await uploadAPI.deleteAllRooms()
+      await loadRooms()
+      alert(result.message || 'All rooms deleted successfully!')
+    } catch (error) {
+      alert(error.message || 'Failed to delete all rooms')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   // Calculate total capacity
   const totalCapacity = rooms.reduce((sum, room) => sum + parseInt(room.capacity || 0), 0)
 
@@ -201,6 +227,14 @@ export default function Rooms(){
                 className="bg-green-400 hover:bg-green-500 px-4 py-2 rounded transition duration-200 flex items-center gap-2"
               >
                 📁 Import Excel/CSV
+              </button>
+              <button 
+                onClick={handleDeleteAll}
+                disabled={loading || rooms.length === 0}
+                className="bg-red-500 hover:bg-red-600 disabled:bg-gray-400 disabled:cursor-not-allowed px-4 py-2 rounded transition duration-200 flex items-center gap-2 text-white font-semibold"
+              >
+                <span>🗑️</span>
+                {loading ? 'Deleting...' : 'Delete All'}
               </button>
             </div>
           )}

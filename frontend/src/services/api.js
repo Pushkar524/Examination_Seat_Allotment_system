@@ -159,6 +159,12 @@ export const uploadAPI = {
     });
   },
 
+  deleteAllStudents: async () => {
+    return await apiCall('/upload/students/all', {
+      method: 'DELETE',
+    });
+  },
+
   getRooms: async () => {
     return await apiCall('/upload/rooms');
   },
@@ -183,6 +189,12 @@ export const uploadAPI = {
     });
   },
 
+  deleteAllRooms: async () => {
+    return await apiCall('/upload/rooms/all', {
+      method: 'DELETE',
+    });
+  },
+
   getInvigilators: async () => {
     return await apiCall('/upload/invigilators');
   },
@@ -203,6 +215,12 @@ export const uploadAPI = {
 
   deleteInvigilator: async (id) => {
     return await apiCall(`/upload/invigilators/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  deleteAllInvigilators: async () => {
+    return await apiCall('/upload/invigilators/all', {
       method: 'DELETE',
     });
   },
@@ -335,9 +353,19 @@ export const exportAPI = {
   },
 };
 
+// Exams APIs
+export const examsAPI = {
+  deleteAllExams: async () => {
+    return await apiCall('/exams/exams/all', {
+      method: 'DELETE',
+    });
+  },
+};
+
 export default {
   authAPI,
   uploadAPI,
   allotmentAPI,
   exportAPI,
+  examsAPI,
 };
