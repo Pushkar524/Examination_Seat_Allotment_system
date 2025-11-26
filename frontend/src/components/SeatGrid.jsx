@@ -293,6 +293,8 @@ export default function SeatGrid({
     
     const patternASeats = []
     const patternBSeats = []
+    const patternAOccupiedCount = []
+    const patternBOccupiedCount = []
     
     for (let benchIndex = 0; benchIndex < benches; benchIndex++) {
       for (let seatIndex = 0; seatIndex < seatsPerBench; seatIndex++) {
@@ -302,6 +304,12 @@ export default function SeatGrid({
             patternASeats.push(seatNumber)
           } else {
             patternBSeats.push(seatNumber)
+          }
+        } else {
+          if ((benchIndex + seatIndex) % 2 === 0) {
+            patternAOccupiedCount.push(seatNumber)
+          } else {
+            patternBOccupiedCount.push(seatNumber)
           }
         }
       }
@@ -314,6 +322,9 @@ export default function SeatGrid({
     // Check if Pattern B is currently selected (all available Pattern B seats are selected)
     const patternBFullySelected = patternBSeats.length > 0 && 
                                    patternBSeats.every(seat => selectedSeats.includes(seat))
+    
+    // Check if Pattern A is mostly occupied (more occupied than Pattern B)
+    const patternAMostlyOccupied = patternAOccupiedCount.length > patternBOccupiedCount.length
     
     // First deselect all currently selected seats
     if (selectedSeats.length > 0) {
@@ -332,9 +343,15 @@ export default function SeatGrid({
       } else if (patternBFullySelected && patternASeats.length > 0) {
         // If Pattern B was fully selected, cycle back to Pattern A
         patternASeats.forEach(seat => onSeatSelect(seat))
-      } else {
-        // Default: select Pattern A
+      } else if (patternAMostlyOccupied && patternBSeats.length > 0) {
+        // If Pattern A is mostly occupied, default to Pattern B
+        patternBSeats.forEach(seat => onSeatSelect(seat))
+      } else if (patternASeats.length > 0) {
+        // Default: select Pattern A if available
         patternASeats.forEach(seat => onSeatSelect(seat))
+      } else if (patternBSeats.length > 0) {
+        // Fallback: select Pattern B if Pattern A is fully occupied
+        patternBSeats.forEach(seat => onSeatSelect(seat))
       }
     }
   }
