@@ -362,10 +362,36 @@ export const examsAPI = {
   },
 };
 
+// Department-Subject APIs
+export const deptSubjectsAPI = {
+  getDepartments: async () => {
+    return await apiCall('/dept-subjects/departments');
+  },
+
+  getDepartmentSubjects: async (examId) => {
+    return await apiCall(`/dept-subjects/exams/${examId}/department-subjects`);
+  },
+
+  bulkUpdateDepartmentSubjects: async (examId, mappings) => {
+    return await apiCall(`/dept-subjects/exams/${examId}/department-subjects/bulk`, {
+      method: 'POST',
+      body: JSON.stringify({ mappings }),
+    });
+  },
+
+  performSeatAllotment: async (examId, pattern, room_ids = null) => {
+    return await apiCall(`/dept-subjects/exams/${examId}/allot-seats`, {
+      method: 'POST',
+      body: JSON.stringify({ pattern, room_ids }),
+    });
+  },
+};
+
 export default {
   authAPI,
   uploadAPI,
   allotmentAPI,
   exportAPI,
   examsAPI,
+  deptSubjectsAPI,
 };
