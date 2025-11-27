@@ -192,12 +192,16 @@ router.post('/exams/:examId/allot-seats', authMiddleware(['admin']), async (req,
       return res.status(400).json({ error: 'No rooms available' });
     }
     
-    // Get all students grouped by department
+    // Get all students grouped by department, excluding those already allocated for this exam
     const studentsResult = await client.query(`
-      SELECT id, roll_no, department
-      FROM students
-      ORDER BY department, roll_no
-    `);
+      SELECT s.id, s.roll_no, s.department
+      FROM students s
+      WHERE NOT EXISTS (
+        SELECT 1 FROM seat_allotments sa 
+        WHERE sa.student_id = s.id AND sa.exam_id = $1
+      )
+      ORDER BY s.department, s.roll_no
+    `, [examId]);
     
     // Group students by department
     const studentsByDept = {};
