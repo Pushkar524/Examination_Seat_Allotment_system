@@ -236,8 +236,7 @@ router.post('/exams/:examId/allot-seats', authMiddleware(['admin']), async (req,
     let orderedStudents = [];
     
     if (pattern === 'pattern1') {
-      // Pattern 1: Alternate by column to avoid same subjects sitting together
-      // Group students by subject
+      // Pattern 1: Group students by subject
       const studentsBySubject = {};
       studentsToAllot.forEach(student => {
         if (!studentsBySubject[student.subject_id]) {
@@ -248,22 +247,8 @@ router.post('/exams/:examId/allot-seats', authMiddleware(['admin']), async (req,
       
       const subjectKeys = Object.keys(studentsBySubject);
       
-      if (subjectKeys.length === 1) {
-        // Only one subject, allocate sequentially
-        orderedStudents = studentsToAllot;
-      } else {
-        // Multiple subjects: alternate by column (even/odd seats)
-        // Allocate first subject to even seats (0, 2, 4...), second to odd (1, 3, 5...)
-        const maxLength = Math.max(...Object.values(studentsBySubject).map(arr => arr.length));
-        
-        for (let i = 0; i < maxLength; i++) {
-          for (const subjectId of subjectKeys) {
-            if (studentsBySubject[subjectId][i]) {
-              orderedStudents.push(studentsBySubject[subjectId][i]);
-            }
-          }
-        }
-      }
+      // Store organized by subject for column-based allocation
+      orderedStudents = { bySubject: studentsBySubject, subjectKeys };
     } else if (pattern === 'pattern2') {
       // Pattern 2: Alternate departments (mix students from different departments)
       const deptArrays = {};
@@ -300,58 +285,75 @@ router.post('/exams/:examId/allot-seats', authMiddleware(['admin']), async (req,
     let allocatedCount = 0;
     
     if (pattern === 'pattern1') {
-      // Pattern 1: Alternate allocation by subject within each room
-      // Group students by subject for alternating allocation
-      const studentsBySubject = {};
-      orderedStudents.forEach(student => {
-        if (!studentsBySubject[student.subject_id]) {
-          studentsBySubject[student.subject_id] = [];
-        }
-        studentsBySubject[student.subject_id].push(student);
-      });
-      
-      const subjectIds = Object.keys(studentsBySubject);
+      // Pattern 1: Optimal column allocation with smart buffer usage
+      const studentsBySubject = orderedStudents.bySubject;
+      const subjectKeys = orderedStudents.subjectKeys;
       
       for (const room of rooms) {
-        const seatsInRoom = [];
+        const numBenches = room.number_of_benches || 10;
+        const seatsPerBench = room.seats_per_bench || 4;
         
-        // For each subject, allocate to specific seat positions
-        subjectIds.forEach((subjectId, index) => {
-          const students = studentsBySubject[subjectId];
+        // Track which subject is in each column
+        const columnSubjects = new Array(seatsPerBench).fill(null);
+        let currentSubjectIndex = 0;
+        
+        for (let col = 0; col < seatsPerBench; col++) {
+          // Find a subject that can be placed in this column
+          let placed = false;
+          let attempts = 0;
           
-          while (students.length > 0 && seatsInRoom.length < room.capacity) {
-            const student = students.shift();
+          while (!placed && attempts < subjectKeys.length) {
+            const subjectId = subjectKeys[currentSubjectIndex % subjectKeys.length];
+            const studentsForThisSubject = studentsBySubject[subjectId];
             
-            // Find next available seat for this subject's pattern
-            let seatNumber = (index % 2 === 0) ? 1 : 2; // Start at 1 for first subject, 2 for second
-            
-            while (seatsInRoom.some(s => s.seatNumber === seatNumber)) {
-              seatNumber += 2; // Increment by 2 to maintain even/odd pattern
+            if (!studentsForThisSubject || studentsForThisSubject.length === 0) {
+              currentSubjectIndex++;
+              attempts++;
+              continue;
             }
             
-            if (seatNumber <= room.capacity) {
-              seatsInRoom.push({ student, seatNumber });
+            // Check if this subject is different from adjacent columns
+            const leftSubject = col > 0 ? columnSubjects[col - 1] : null;
+            const rightSubject = col < seatsPerBench - 1 ? columnSubjects[col + 1] : null;
+            
+            const isDifferentFromLeft = !leftSubject || leftSubject !== subjectId;
+            const isDifferentFromRight = !rightSubject || rightSubject !== subjectId;
+            
+            if (isDifferentFromLeft && isDifferentFromRight) {
+              // Safe to place this subject here
+              for (let bench = 0; bench < numBenches && studentsForThisSubject.length > 0; bench++) {
+                const seatNumber = col * numBenches + bench + 1;
+                if (seatNumber > room.capacity) break;
+                
+                const student = studentsForThisSubject.shift();
+                
+                await client.query(`
+                  INSERT INTO seat_allotments (student_id, room_id, seat_number, exam_id, subject_id, allotment_pattern)
+                  VALUES ($1, $2, $3, $4, $5, $6)
+                `, [student.id, room.id, seatNumber, examId, student.subject_id, pattern]);
+                
+                allocatedCount++;
+              }
+              
+              columnSubjects[col] = subjectId;
+              placed = true;
+              currentSubjectIndex++;
             } else {
-              // Room full, put student back
-              students.unshift(student);
-              break;
+              // Try next subject
+              currentSubjectIndex++;
+              attempts++;
             }
           }
-        });
-        
-        // Insert allocations for this room
-        for (const { student, seatNumber } of seatsInRoom.sort((a, b) => a.seatNumber - b.seatNumber)) {
-          await client.query(`
-            INSERT INTO seat_allotments (student_id, room_id, seat_number, exam_id, subject_id, allotment_pattern)
-            VALUES ($1, $2, $3, $4, $5, $6)
-          `, [student.id, room.id, seatNumber, examId, student.subject_id, pattern]);
           
-          allocatedCount++;
+          // If no subject could be placed, leave empty and continue
+          if (!placed) {
+            columnSubjects[col] = null; // Empty column
+          }
         }
         
-        // Check if all students allocated
-        const remainingStudents = subjectIds.reduce((sum, id) => sum + studentsBySubject[id].length, 0);
-        if (remainingStudents === 0) break;
+        // Check if all students are allocated
+        const allAllocated = subjectKeys.every(key => studentsBySubject[key].length === 0);
+        if (allAllocated) break;
       }
     } else {
       // Pattern 2: Sequential allocation

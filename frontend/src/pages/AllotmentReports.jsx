@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { allotmentAPI, exportAPI } from '../services/api';
+import { allotmentAPI, exportAPI, uploadAPI } from '../services/api';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 const AllotmentReports = () => {
   const [allotments, setAllotments] = useState([]);
+  const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedRoomForGrid, setSelectedRoomForGrid] = useState(null);
   
   // Filters
   const [departmentFilter, setDepartmentFilter] = useState('');
@@ -15,6 +17,7 @@ const AllotmentReports = () => {
 
   useEffect(() => {
     fetchAllotments();
+    fetchRooms();
   }, []);
 
   const fetchAllotments = async () => {
@@ -30,6 +33,15 @@ const AllotmentReports = () => {
       setError(err.message || 'Failed to load allotments');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchRooms = async () => {
+    try {
+      const data = await uploadAPI.getRooms();
+      setRooms(data || []);
+    } catch (err) {
+      console.error('Error fetching rooms:', err);
     }
   };
 
@@ -301,6 +313,133 @@ const AllotmentReports = () => {
     doc.save(`${room}_allotments.pdf`);
   };
 
+  // Render room grid view
+  const RoomGridView = ({ room }) => {
+    const roomData = rooms.find(r => r.room_no === room);
+    if (!roomData) return null;
+
+    const roomAllotments = allotments.filter(a => a.room_no === room);
+    const occupiedSeats = new Set(roomAllotments.map(a => a.seat_number));
+
+    const numBenches = roomData.number_of_benches || 10;
+    const seatsPerBench = roomData.seats_per_bench || 4;
+
+    // Create benches with seats - column-wise numbering
+    const benches = [];
+    for (let benchIndex = 0; benchIndex < numBenches; benchIndex++) {
+      const benchSeats = [];
+      for (let seatIndex = 0; seatIndex < seatsPerBench; seatIndex++) {
+        const seatNum = seatIndex * numBenches + benchIndex + 1;
+        if (seatNum <= roomData.capacity) {
+          benchSeats.push(seatNum);
+        }
+      }
+      benches.push(benchSeats);
+    }
+
+    // Get unique departments and assign colors
+    const uniqueDepts = [...new Set(roomAllotments.map(a => a.department))];
+    const deptColors = {
+      // Light pastel colors for different departments
+      0: { bg: 'bg-blue-100 dark:bg-blue-900', border: 'border-blue-400', text: 'text-blue-900 dark:text-blue-100' },
+      1: { bg: 'bg-green-100 dark:bg-green-900', border: 'border-green-400', text: 'text-green-900 dark:text-green-100' },
+      2: { bg: 'bg-purple-100 dark:bg-purple-900', border: 'border-purple-400', text: 'text-purple-900 dark:text-purple-100' },
+      3: { bg: 'bg-pink-100 dark:bg-pink-900', border: 'border-pink-400', text: 'text-pink-900 dark:text-pink-100' },
+      4: { bg: 'bg-yellow-100 dark:bg-yellow-900', border: 'border-yellow-400', text: 'text-yellow-900 dark:text-yellow-100' },
+      5: { bg: 'bg-cyan-100 dark:bg-cyan-900', border: 'border-cyan-400', text: 'text-cyan-900 dark:text-cyan-100' },
+      6: { bg: 'bg-orange-100 dark:bg-orange-900', border: 'border-orange-400', text: 'text-orange-900 dark:text-orange-100' },
+      7: { bg: 'bg-teal-100 dark:bg-teal-900', border: 'border-teal-400', text: 'text-teal-900 dark:text-teal-100' },
+      8: { bg: 'bg-indigo-100 dark:bg-indigo-900', border: 'border-indigo-400', text: 'text-indigo-900 dark:text-indigo-100' },
+      9: { bg: 'bg-rose-100 dark:bg-rose-900', border: 'border-rose-400', text: 'text-rose-900 dark:text-rose-100' },
+    };
+
+    const getDeptColor = (department) => {
+      const index = uniqueDepts.indexOf(department);
+      return deptColors[index % 10] || deptColors[0];
+    };
+
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+              {room} - Seat Grid
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              {numBenches} Benches × {seatsPerBench} Seats | Capacity: {roomData.capacity} | Occupied: {roomAllotments.length} | Available: {roomData.capacity - roomAllotments.length}
+            </p>
+          </div>
+          <button
+            onClick={() => setSelectedRoomForGrid(null)}
+            className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg"
+          >
+            ✕ Close
+          </button>
+        </div>
+
+        {/* Legend */}
+        <div className="mb-4">
+          <div className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Departments:</div>
+          <div className="flex flex-wrap gap-3">
+            {uniqueDepts.map(dept => {
+              const colors = getDeptColor(dept);
+              return (
+                <div key={dept} className="flex items-center gap-2">
+                  <div className={`w-8 h-8 ${colors.bg} rounded border-2 ${colors.border}`}></div>
+                  <span className="text-sm dark:text-gray-300">{dept}</span>
+                </div>
+              );
+            })}
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded border-2 border-gray-400 dark:border-gray-600"></div>
+              <span className="text-sm dark:text-gray-300">Empty</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Grid - Benches Layout */}
+        <div className="space-y-3">
+          {benches.map((benchSeats, benchIndex) => (
+            <div key={benchIndex} className="border-2 border-gray-300 dark:border-gray-600 rounded-lg p-2 bg-gray-50 dark:bg-gray-700">
+              <div className="text-xs text-gray-500 dark:text-gray-400 mb-2 font-semibold">
+                Bench {benchIndex + 1}
+              </div>
+              <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${seatsPerBench}, minmax(0, 1fr))` }}>
+                {benchSeats.map(seatNum => {
+                  const allotment = roomAllotments.find(a => a.seat_number === seatNum);
+                  const isOccupied = occupiedSeats.has(seatNum);
+                  const colors = isOccupied ? getDeptColor(allotment.department) : null;
+
+                  return (
+                    <div
+                      key={seatNum}
+                      className={`relative p-2 flex flex-col items-center justify-center rounded border-2 transition-all min-h-[80px] ${
+                        isOccupied
+                          ? `${colors.bg} ${colors.border} shadow-md`
+                          : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-400 dark:text-gray-600'
+                      }`}
+                      title={isOccupied ? `${allotment.student_name} (${allotment.roll_no}) - ${allotment.department}` : `Seat ${seatNum} - Empty`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className={`font-bold text-lg ${isOccupied ? colors.text : ''}`}>{seatNum}</span>
+                        {isOccupied && (
+                          <div className={`text-left text-xs ${colors.text}`}>
+                            <div className="font-bold">{allotment.roll_no}</div>
+                            <div className="text-[10px]">{allotment.student_name?.substring(0, 20)}</div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen dark:bg-gray-900">
@@ -556,6 +695,16 @@ const AllotmentReports = () => {
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
                 🏢 Room-wise Allotments
               </h2>
+              
+              {/* Grid View Modal */}
+              {selectedRoomForGrid && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                  <div className="max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+                    <RoomGridView room={selectedRoomForGrid} />
+                  </div>
+                </div>
+              )}
+              
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {Object.keys(groupedByRoom).sort().map(room => (
                   <div key={room} className="border dark:border-gray-700 rounded-lg p-4 hover:shadow-lg transition">
@@ -565,37 +714,54 @@ const AllotmentReports = () => {
                         {groupedByRoom[room].length}
                       </span>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-col gap-2">
                       <button
-                        onClick={() => setRoomFilter(room)}
-                        className="flex-1 text-purple-600 dark:text-purple-400 hover:underline text-sm text-left"
+                        onClick={() => setSelectedRoomForGrid(room)}
+                        className="w-full bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded text-sm transition flex items-center justify-center gap-2"
                       >
-                        View Details →
+                        <span>🔲</span> View Grid
                       </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          exportRoomCSV(room);
-                        }}
-                        className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs transition"
-                        title="Export to CSV"
-                      >
-                        📥
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          exportRoomPDF(room);
-                        }}
-                        className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs transition"
-                        title="Export to PDF"
-                      >
-                        📄
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setRoomFilter(room)}
+                          className="flex-1 text-purple-600 dark:text-purple-400 hover:underline text-sm text-left"
+                        >
+                          View Details →
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            exportRoomCSV(room);
+                          }}
+                          className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs transition"
+                          title="Export to CSV"
+                        >
+                          📥
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            exportRoomPDF(room);
+                          }}
+                          className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs transition"
+                          title="Export to PDF"
+                        >
+                          📄
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Room Grid Modal */}
+        {selectedRoomForGrid && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="max-w-6xl w-full max-h-[90vh] overflow-auto">
+              <RoomGridView room={selectedRoomForGrid} />
             </div>
           </div>
         )}

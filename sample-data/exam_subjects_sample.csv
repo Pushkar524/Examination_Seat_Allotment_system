@@ -1,6 +1,6 @@
 subject_name,subject_code,exam_date,start_time,end_time
 Physics,PHY101,2025-12-12,11:00,12:30
-Chemistry,CHEM101,2025-12-12,11:00,12:30
-Mathematics,MATH101,2025-12-13,11:00,12:30
-Biology,BIO101,2025-12-14,11:00,12:30
-Computer Science,CS101,2025-12-15,11:00,12:30
+Chemistry,CHEM101,2025-12-11,11:00,12:30
+Mathematics,MATH101,2025-12-12,11:00,12:30
+Biology,BIO101,2025-12-12,01:30,03:00
+Computer Science,CS101,2025-12-13,11:00,12:30
