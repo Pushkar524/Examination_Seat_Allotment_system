@@ -153,7 +153,7 @@ export default function PatternAllotment() {
       return
     }
 
-    if (!window.confirm(`Perform seat allotment using ${selectedPattern === 'pattern1' ? 'Pattern 1 (Sequential by Department)' : 'Pattern 2 (Alternate/Mixed Departments)'}?\n\nThis will delete existing allotments for this exam.`)) {
+    if (!window.confirm(`Perform seat allotment using ${selectedPattern === 'pattern1' ? 'Pattern 1 (Alternating Columns by Subject)' : 'Pattern 2 (Alternate/Mixed Departments)'}?\n\nThis will delete existing allotments for this exam.`)) {
       return
     }
 
@@ -419,14 +419,14 @@ export default function PatternAllotment() {
                     )}
                   </div>
                   <h3 className="text-xl font-bold text-gray-800 dark:text-white">
-                    Pattern 1: Sequential
+                    Pattern 1: Alternating Columns
                   </h3>
                 </div>
                 <p className="text-gray-600 dark:text-gray-400 text-sm">
-                  Students are allocated sequentially by department and roll number. All students from Department A first, then Department B, etc.
+                  Students with different subjects are alternated by column (seat position) within each room. Subject A gets even seats (1, 3, 5...), Subject B gets odd seats (2, 4, 6...) to prevent students with same subject sitting next to each other.
                 </p>
                 <div className="mt-3 text-xs text-gray-500 dark:text-gray-500">
-                  Example: Room 1: [Dept A: 1-30], Room 2: [Dept A: 31-50, Dept B: 1-10]
+                  Example: Room 1: [Seat 1: A1, Seat 2: B1, Seat 3: A2, Seat 4: B2...]
                 </div>
               </button>
 

@@ -236,8 +236,34 @@ router.post('/exams/:examId/allot-seats', authMiddleware(['admin']), async (req,
     let orderedStudents = [];
     
     if (pattern === 'pattern1') {
-      // Pattern 1: Sequential by roll number within department
-      orderedStudents = studentsToAllot;
+      // Pattern 1: Alternate by column to avoid same subjects sitting together
+      // Group students by subject
+      const studentsBySubject = {};
+      studentsToAllot.forEach(student => {
+        if (!studentsBySubject[student.subject_id]) {
+          studentsBySubject[student.subject_id] = [];
+        }
+        studentsBySubject[student.subject_id].push(student);
+      });
+      
+      const subjectKeys = Object.keys(studentsBySubject);
+      
+      if (subjectKeys.length === 1) {
+        // Only one subject, allocate sequentially
+        orderedStudents = studentsToAllot;
+      } else {
+        // Multiple subjects: alternate by column (even/odd seats)
+        // Allocate first subject to even seats (0, 2, 4...), second to odd (1, 3, 5...)
+        const maxLength = Math.max(...Object.values(studentsBySubject).map(arr => arr.length));
+        
+        for (let i = 0; i < maxLength; i++) {
+          for (const subjectId of subjectKeys) {
+            if (studentsBySubject[subjectId][i]) {
+              orderedStudents.push(studentsBySubject[subjectId][i]);
+            }
+          }
+        }
+      }
     } else if (pattern === 'pattern2') {
       // Pattern 2: Alternate departments (mix students from different departments)
       const deptArrays = {};
@@ -270,31 +296,89 @@ router.post('/exams/:examId/allot-seats', authMiddleware(['admin']), async (req,
       });
     }
     
-    // Allocate seats
-    let currentRoomIndex = 0;
-    let currentSeatNumber = 1;
+    // Allocate seats based on pattern
     let allocatedCount = 0;
     
-    for (const student of orderedStudents) {
-      if (currentRoomIndex >= rooms.length) {
-        break; // No more rooms available
+    if (pattern === 'pattern1') {
+      // Pattern 1: Alternate allocation by subject within each room
+      // Group students by subject for alternating allocation
+      const studentsBySubject = {};
+      orderedStudents.forEach(student => {
+        if (!studentsBySubject[student.subject_id]) {
+          studentsBySubject[student.subject_id] = [];
+        }
+        studentsBySubject[student.subject_id].push(student);
+      });
+      
+      const subjectIds = Object.keys(studentsBySubject);
+      
+      for (const room of rooms) {
+        const seatsInRoom = [];
+        
+        // For each subject, allocate to specific seat positions
+        subjectIds.forEach((subjectId, index) => {
+          const students = studentsBySubject[subjectId];
+          
+          while (students.length > 0 && seatsInRoom.length < room.capacity) {
+            const student = students.shift();
+            
+            // Find next available seat for this subject's pattern
+            let seatNumber = (index % 2 === 0) ? 1 : 2; // Start at 1 for first subject, 2 for second
+            
+            while (seatsInRoom.some(s => s.seatNumber === seatNumber)) {
+              seatNumber += 2; // Increment by 2 to maintain even/odd pattern
+            }
+            
+            if (seatNumber <= room.capacity) {
+              seatsInRoom.push({ student, seatNumber });
+            } else {
+              // Room full, put student back
+              students.unshift(student);
+              break;
+            }
+          }
+        });
+        
+        // Insert allocations for this room
+        for (const { student, seatNumber } of seatsInRoom.sort((a, b) => a.seatNumber - b.seatNumber)) {
+          await client.query(`
+            INSERT INTO seat_allotments (student_id, room_id, seat_number, exam_id, subject_id, allotment_pattern)
+            VALUES ($1, $2, $3, $4, $5, $6)
+          `, [student.id, room.id, seatNumber, examId, student.subject_id, pattern]);
+          
+          allocatedCount++;
+        }
+        
+        // Check if all students allocated
+        const remainingStudents = subjectIds.reduce((sum, id) => sum + studentsBySubject[id].length, 0);
+        if (remainingStudents === 0) break;
       }
+    } else {
+      // Pattern 2: Sequential allocation
+      let currentRoomIndex = 0;
+      let currentSeatNumber = 1;
       
-      const room = rooms[currentRoomIndex];
-      
-      // Insert allotment
-      await client.query(`
-        INSERT INTO seat_allotments (student_id, room_id, seat_number, exam_id, subject_id, allotment_pattern)
-        VALUES ($1, $2, $3, $4, $5, $6)
-      `, [student.id, room.id, currentSeatNumber, examId, student.subject_id, pattern]);
-      
-      allocatedCount++;
-      currentSeatNumber++;
-      
-      // Move to next room if current room is full
-      if (currentSeatNumber > room.capacity) {
-        currentRoomIndex++;
-        currentSeatNumber = 1;
+      for (const student of orderedStudents) {
+        if (currentRoomIndex >= rooms.length) {
+          break; // No more rooms available
+        }
+        
+        const room = rooms[currentRoomIndex];
+        
+        // Insert allotment
+        await client.query(`
+          INSERT INTO seat_allotments (student_id, room_id, seat_number, exam_id, subject_id, allotment_pattern)
+          VALUES ($1, $2, $3, $4, $5, $6)
+        `, [student.id, room.id, currentSeatNumber, examId, student.subject_id, pattern]);
+        
+        allocatedCount++;
+        currentSeatNumber++;
+        
+        // Move to next room if current room is full
+        if (currentSeatNumber > room.capacity) {
+          currentRoomIndex++;
+          currentSeatNumber = 1;
+        }
       }
     }
     
