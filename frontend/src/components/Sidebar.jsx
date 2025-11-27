@@ -48,8 +48,7 @@ export default function Sidebar(){
           {(isAdmin || role === 'admin') && (
             <>
               <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-6 mt-4 mb-2">SEAT ALLOTMENT</div>
-              <MenuItem to="/allotment">🪑 VISUAL ALLOTMENT</MenuItem>
-              <MenuItem to="/pattern-allotment">🎯 PATTERN ALLOTMENT</MenuItem>
+              <MenuItem to="/pattern-allotment">🎯 SEAT ALLOTMENT</MenuItem>
               <MenuItem to="/allotment-reports">📋 REPORTS</MenuItem>
               
               <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-6 mt-4 mb-2">MANAGEMENT</div>

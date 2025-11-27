@@ -16,6 +16,12 @@ export default function PatternAllotment() {
   const [selectedRooms, setSelectedRooms] = useState([])
   const [loading, setLoading] = useState(false)
   const [step, setStep] = useState(1) // 1: Select Exam, 2: Map Subjects, 3: Choose Pattern & Allot
+  
+  // Allotment list state
+  const [allotments, setAllotments] = useState([])
+  const [allotmentSearchTerm, setAllotmentSearchTerm] = useState('')
+  const [courseFilter, setCourseFilter] = useState('')
+  const [roomFilter, setRoomFilter] = useState('')
 
   useEffect(() => {
     if (isAdmin) {
@@ -33,11 +39,30 @@ export default function PatternAllotment() {
       ])
       setDepartments(departmentsData)
       setRooms(roomsData)
+      await loadAllotments()
     } catch (error) {
       console.error('Failed to load initial data:', error)
       alert('Failed to load data: ' + error.message)
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function loadAllotments() {
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch(`${API_BASE_URL}/allotment/allotments`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      
+      if (!response.ok) throw new Error('Failed to load allotments')
+      
+      const data = await response.json()
+      setAllotments(data)
+    } catch (error) {
+      console.error('Error loading allotments:', error)
     }
   }
 
@@ -139,6 +164,9 @@ export default function PatternAllotment() {
       
       alert(`✅ Seat allotment completed successfully!\n\n${result.allocatedCount} students allocated\nPattern: ${selectedPattern}\nRooms used: ${result.totalRooms}`)
       
+      // Reload allotments
+      await loadAllotments()
+      
       // Reset
       setSelectedExam(null)
       setMappings({})
@@ -151,6 +179,56 @@ export default function PatternAllotment() {
       setLoading(false)
     }
   }
+
+  async function handleDeleteAllAllotments() {
+    if (!window.confirm(`Are you sure you want to delete ALL ${allotments.length} seat allotments? This action cannot be undone!`)) {
+      return
+    }
+
+    if (!window.confirm('This will permanently delete all seat assignments. Are you absolutely sure?')) {
+      return
+    }
+
+    try {
+      setLoading(true)
+      
+      const token = localStorage.getItem('token')
+      
+      // Delete all allotments one by one
+      for (const allotment of allotments) {
+        await fetch(`${API_BASE_URL}/allotment/allotments/${allotment.id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+      }
+      
+      await loadAllotments()
+      alert('All seat allotments deleted successfully!')
+    } catch (error) {
+      console.error('Delete all failed:', error)
+      alert(error.message || 'Failed to delete all allotments')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Filter allotments based on search and filters
+  const filteredAllotments = allotments.filter(a => {
+    const matchesSearch = !allotmentSearchTerm || 
+      a.roll_no?.toLowerCase().includes(allotmentSearchTerm.toLowerCase()) ||
+      a.student_name?.toLowerCase().includes(allotmentSearchTerm.toLowerCase())
+    
+    const matchesCourse = !courseFilter || a.department?.includes(courseFilter)
+    const matchesRoom = !roomFilter || a.room_no?.includes(roomFilter)
+    
+    return matchesSearch && matchesCourse && matchesRoom
+  })
+
+  // Get unique values for filter dropdowns
+  const uniqueCourses = [...new Set(allotments.map(a => a.department).filter(c => c))]
+  const uniqueRooms = [...new Set(allotments.map(a => a.room_no).filter(r => r))]
 
   if (!isAdmin) {
     return (
@@ -428,6 +506,135 @@ export default function PatternAllotment() {
               >
                 {loading ? '⏳ Allocating...' : '🚀 Perform Seat Allotment'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Allotment List Section */}
+      {allotments.length > 0 && (
+        <div className="mt-8">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border dark:border-gray-700">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
+                📋 All Seat Allotments
+              </h2>
+              {isAdmin && (
+                <button
+                  onClick={handleDeleteAllAllotments}
+                  disabled={loading}
+                  className="px-4 py-2 bg-red-500 hover:bg-red-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <span>🗑️</span>
+                  {loading ? 'Deleting...' : 'Delete All Allotments'}
+                </button>
+              )}
+            </div>
+
+            {/* Search and Filter Bar */}
+            <div className="grid grid-cols-3 gap-4 mb-4">
+              <input 
+                value={allotmentSearchTerm} 
+                onChange={e => setAllotmentSearchTerm(e.target.value)} 
+                placeholder="🔍 Search by Student Name or Roll No" 
+                className="border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2 focus:border-blue-500 focus:outline-none"
+              />
+              <select 
+                value={courseFilter} 
+                onChange={e => setCourseFilter(e.target.value)} 
+                className="border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2 focus:border-blue-500 focus:outline-none"
+              >
+                <option value="">All Departments</option>
+                {uniqueCourses.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <select 
+                value={roomFilter} 
+                onChange={e => setRoomFilter(e.target.value)} 
+                className="border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2 focus:border-blue-500 focus:outline-none"
+              >
+                <option value="">All Rooms</option>
+                {uniqueRooms.map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+            </div>
+
+            {/* Allotments Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-gray-100 dark:bg-gray-700">
+                    <th className="border dark:border-gray-600 p-3 text-left font-semibold dark:text-white">Roll No</th>
+                    <th className="border dark:border-gray-600 p-3 text-left font-semibold dark:text-white">Student Name</th>
+                    <th className="border dark:border-gray-600 p-3 text-left font-semibold dark:text-white">Department</th>
+                    <th className="border dark:border-gray-600 p-3 text-left font-semibold dark:text-white">Room No</th>
+                    <th className="border dark:border-gray-600 p-3 text-left font-semibold dark:text-white">Floor</th>
+                    <th className="border dark:border-gray-600 p-3 text-left font-semibold dark:text-white">Seat No</th>
+                    {isAdmin && <th className="border dark:border-gray-600 p-3 text-center font-semibold dark:text-white">Actions</th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredAllotments.length === 0 ? (
+                    <tr className="h-20">
+                      <td className="border dark:border-gray-600 p-4 text-center text-gray-500 dark:text-gray-400" colSpan={isAdmin ? 7 : 6}>
+                        No matching allotments found
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredAllotments.map(a => (
+                      <tr key={a.id} className="h-12 hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors">
+                        <td className="border dark:border-gray-600 p-2 font-mono dark:text-gray-200">{a.roll_no}</td>
+                        <td className="border dark:border-gray-600 p-2 font-medium dark:text-gray-200">{a.student_name}</td>
+                        <td className="border dark:border-gray-600 p-2 dark:text-gray-200">{a.department}</td>
+                        <td className="border dark:border-gray-600 p-2">
+                          <span className="bg-cyan-100 dark:bg-cyan-900 px-2 py-1 rounded text-cyan-800 dark:text-cyan-200 font-semibold">
+                            {a.room_no}
+                          </span>
+                        </td>
+                        <td className="border dark:border-gray-600 p-2 dark:text-gray-200">{a.floor}</td>
+                        <td className="border dark:border-gray-600 p-2">
+                          <span className="bg-purple-100 dark:bg-purple-900 px-2 py-1 rounded text-purple-800 dark:text-purple-200 font-semibold">
+                            {a.seat_number}
+                          </span>
+                        </td>
+                        {isAdmin && (
+                          <td className="border dark:border-gray-600 p-2">
+                            <div className="flex gap-2 justify-center">
+                              <button 
+                                onClick={async () => {
+                                  if (window.confirm('Delete this allotment?')) {
+                                    try {
+                                      const token = localStorage.getItem('token')
+                                      const response = await fetch(`${API_BASE_URL}/allotment/allotments/${a.id}`, {
+                                        method: 'DELETE',
+                                        headers: {
+                                          'Authorization': `Bearer ${token}`
+                                        }
+                                      })
+                                      
+                                      if (!response.ok) throw new Error('Failed to delete')
+                                      
+                                      await loadAllotments()
+                                      alert('Allotment deleted successfully')
+                                    } catch (error) {
+                                      alert(error.message || 'Failed to delete')
+                                    }
+                                  }
+                                }}
+                                className="px-3 py-1 bg-rose-500 hover:bg-rose-600 text-white rounded text-sm transition-colors"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
+              Showing {filteredAllotments.length} of {allotments.length} total allotments
             </div>
           </div>
         </div>

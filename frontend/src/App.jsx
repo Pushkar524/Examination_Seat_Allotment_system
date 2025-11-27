@@ -8,7 +8,6 @@ import Dashboard from './pages/Dashboard'
 import RegisterStudents from './pages/RegisterStudents'
 import RegisterStaff from './pages/RegisterStaff'
 import Rooms from './pages/Rooms'
-import SeatAllotment from './pages/SeatAllotment'
 import InvigilatorAssignment from './pages/InvigilatorAssignment'
 import AllotmentReports from './pages/AllotmentReports'
 import DiagnosticPage from './pages/DiagnosticPage'
@@ -46,7 +45,6 @@ function ProtectedApp(){
             <Route path="/students" element={<RegisterStudents/>} />
             <Route path="/staff" element={<RegisterStaff/>} />
             <Route path="/rooms" element={<Rooms/>} />
-            <Route path="/allotment" element={<SeatAllotment/>} />
             <Route path="/pattern-allotment" element={<PatternAllotment/>} />
             <Route path="/allotment-reports" element={<AllotmentReports/>} />
             <Route path="/assign-invigilators" element={<InvigilatorAssignment/>} />
