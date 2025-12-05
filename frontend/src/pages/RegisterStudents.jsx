@@ -1,6 +1,8 @@
 import React, {useState, useEffect, useRef} from 'react'
 import { useAuth } from '../context/AuthContext'
 import Modal from '../components/Modal'
+import Toast from '../components/Toast'
+import ConfirmDialog from '../components/ConfirmDialog'
 import { uploadAPI } from '../services/api'
 
 export default function RegisterStudents(){
@@ -11,6 +13,40 @@ export default function RegisterStudents(){
   const [uploadSuccess, setUploadSuccess] = useState('')
   const [uploadErrors, setUploadErrors] = useState([])
   const fileInputRef = useRef(null)
+  
+  // Toast and ConfirmDialog state
+  const [toast, setToast] = useState(null)
+  const [confirmDialog, setConfirmDialog] = useState({ 
+    isOpen: false, 
+    title: '', 
+    message: '', 
+    onConfirm: null,
+    type: 'warning'
+  })
+
+  const showToast = (message, type = 'info') => {
+    setToast({ message, type })
+  }
+
+  const closeToast = () => {
+    setToast(null)
+  }
+
+  const showConfirm = (title, message, onConfirm, type = 'warning') => {
+    setConfirmDialog({ isOpen: true, title, message, onConfirm, type })
+  }
+
+  const closeConfirm = () => {
+    setConfirmDialog({ ...confirmDialog, isOpen: false })
+  }
+
+  const handleConfirm = () => {
+    const callback = confirmDialog.onConfirm
+    closeConfirm()
+    if (callback) {
+      callback()
+    }
+  }
   
   // Manual add state
   const [addModalOpen, setAddModalOpen] = useState(false)
@@ -119,7 +155,8 @@ export default function RegisterStudents(){
       await uploadAPI.addStudent(studentForm)
       await loadStudents()
       setAddModalOpen(false)
-      alert('Student added successfully!')
+      resetForm()
+      showToast('Student added successfully!', 'success')
     } catch (error) {
       setFormError(error.message || 'Failed to add student')
     } finally {
@@ -137,7 +174,7 @@ export default function RegisterStudents(){
       await uploadAPI.updateStudent(id, data)
       await loadStudents()
       setEditModalOpen(false)
-      alert('Student updated successfully!')
+      showToast('Student updated successfully!', 'success')
     } catch (error) {
       setFormError(error.message || 'Failed to update student')
     } finally {
@@ -153,35 +190,96 @@ export default function RegisterStudents(){
       await uploadAPI.deleteStudent(deleteId)
       await loadStudents()
       setDeleteId(null)
-      alert('Student deleted successfully!')
+      showToast('Student deleted successfully!', 'success')
     } catch (error) {
-      alert(error.message || 'Failed to delete student')
+      showToast(error.message || 'Failed to delete student', 'error')
     } finally {
       setLoading(false)
     }
   }
 
-  async function handleDeleteAll() {
+  async function handleDeleteAllStudents() {
     if (students.length === 0) {
-      alert('No students to delete')
+      showToast('No students to delete', 'warning')
       return
     }
 
-    if (!window.confirm(`Are you sure you want to delete ALL ${students.length} students? This action cannot be undone!`)) {
-      return
-    }
+    showConfirm(
+      'Delete All Students',
+      `Are you sure you want to delete ALL ${students.length} students? This action cannot be undone!`,
+      () => {
+        showConfirm(
+          'Final Confirmation',
+          'This will permanently delete all students and their user accounts. Are you absolutely sure?',
+          async () => {
+            try {
+              setLoading(true)
+              const result = await uploadAPI.deleteAllStudents()
+              await loadStudents()
+              showToast(result.message || 'All students deleted successfully!', 'success')
+            } catch (error) {
+              showToast(error.message || 'Failed to delete all students', 'error')
+            } finally {
+              setLoading(false)
+            }
+          },
+          'danger'
+        )
+      },
+      'danger'
+    )
+  }
 
-    if (!window.confirm('This will permanently delete all students and their user accounts. Are you absolutely sure?')) {
-      return
-    }
+  function openAddModal() {
+    setAddModalOpen(true)
+    setStudentForm({
+      id: null,
+      name: '',
+      roll_no: '',
+      date_of_birth: '',
+      department: '',
+      academic_year: ''
+    })
+    setFormError('')
+  }
+
+  function openEditModal(student) {
+    setEditModalOpen(true)
+    setStudentForm({
+      id: student.id,
+      name: student.name,
+      roll_no: student.roll_no,
+      date_of_birth: student.date_of_birth,
+      department: student.department,
+      academic_year: student.academic_year
+    })
+    setFormError('')
+  }
+
+  function openUploadModal(){ 
+    setUploadModalOpen(true)
+    setUploadErrors([])
+    setUploadSuccess('')
+    if(fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  async function handleFileUpload(e) {
+    const file = e.target.files[0]
+    if (!file) return
+
+    setUploadErrors([])
+    setUploadSuccess('')
+    setLoading(true)
 
     try {
-      setLoading(true)
-      const result = await uploadAPI.deleteAllStudents()
+      const result = await uploadAPI.uploadStudents(file)
       await loadStudents()
-      alert(result.message || 'All students deleted successfully!')
+      setUploadSuccess(result.message || 'Upload completed successfully!')
+      if (result.errors && result.errors.length > 0) {
+        setUploadErrors(result.errors)
+      }
     } catch (error) {
-      alert(error.message || 'Failed to delete all students')
+      setUploadErrors([error.message || 'Failed to upload file'])
     } finally {
       setLoading(false)
     }
@@ -209,7 +307,7 @@ export default function RegisterStudents(){
                 📁 Import Excel/CSV
               </button>
               <button 
-                onClick={handleDeleteAll}
+                onClick={handleDeleteAllStudents}
                 disabled={loading || students.length === 0}
                 className="bg-red-500 hover:bg-red-600 disabled:bg-gray-400 disabled:cursor-not-allowed px-4 py-2 rounded transition duration-200 flex items-center gap-2 text-white font-semibold"
               >
@@ -528,6 +626,23 @@ Jane Smith,CS2021002,2003-08-20,Computer Science,2021-2025`}
           </div>
         </div>
       </Modal>
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={closeToast}
+        />
+      )}
+
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={handleConfirm}
+        onCancel={closeConfirm}
+        type={confirmDialog.type}
+      />
     </div>
   )
 }
