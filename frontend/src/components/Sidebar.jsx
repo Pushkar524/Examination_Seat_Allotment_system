@@ -3,8 +3,8 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import Modal from './Modal'
 
-const MenuItem = ({to, children}) => (
-  <NavLink to={to} className={({isActive}) => `block px-6 py-3 my-2 rounded text-sm transition-colors ${isActive ? 'bg-cyan-200 dark:bg-cyan-700 dark:text-white' : 'bg-gray-200 dark:bg-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600'}`}>
+const MenuItem = ({to, children, collapsed}) => (
+  <NavLink to={to} className={({isActive}) => `block px-6 py-3 my-2 rounded text-sm transition-colors ${isActive ? 'bg-cyan-200 dark:bg-cyan-700 dark:text-white' : 'bg-gray-200 dark:bg-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600'} ${collapsed ? 'text-center' : ''}`}>
     {children}
   </NavLink>
 )
@@ -14,6 +14,7 @@ export default function Sidebar(){
   const { role, setRole, isAdmin, profilePic, setProfilePic, adminProfile, setAdminProfile } = useAuth()
   const [profileModalOpen, setProfileModalOpen] = useState(false)
   const [profileForm, setProfileForm] = useState({ username: '', password: '', email: '', phone: '' })
+  const [collapsed, setCollapsed] = useState(false)
 
   function openProfileModal(){
     setProfileForm(adminProfile)
@@ -40,30 +41,43 @@ export default function Sidebar(){
   }
 
   return (
-    <aside className="w-64 bg-cyan-100 dark:bg-gray-800 min-h-screen p-6 flex flex-col transition-colors duration-200">
+    <aside className={`${collapsed ? 'w-20' : 'w-64'} bg-cyan-100 dark:bg-gray-800 min-h-screen p-6 flex flex-col transition-all duration-300 relative`}>
       <div>
-        <div className="text-2xl font-semibold mb-8 dark:text-white">SEAT ALLOTMENT</div>
+        {/* Hamburger Toggle Button */}
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className={`${collapsed ? 'flex justify-center mb-8 p-2' : 'flex items-center gap-2 mb-8 px-3 py-2 bg-cyan-200 dark:bg-gray-700 rounded-lg shadow-lg'} hover:bg-cyan-300 dark:hover:bg-gray-600 transition-colors w-full`}
+          aria-label="Toggle sidebar"
+        >
+          <div className="flex flex-col gap-1">
+            <div className="w-5 h-0.5 bg-gray-700 dark:bg-white rounded"></div>
+            <div className="w-5 h-0.5 bg-gray-700 dark:bg-white rounded"></div>
+            <div className="w-5 h-0.5 bg-gray-700 dark:bg-white rounded"></div>
+          </div>
+          {!collapsed && <span className="text-sm font-medium dark:text-white text-gray-700">To collapse</span>}
+        </button>
+        
         <div>
-          <MenuItem to="/dashboard">📊 DASHBOARD</MenuItem>
+          <MenuItem to="/dashboard" collapsed={collapsed}>{collapsed ? '📊' : '📊 DASHBOARD'}</MenuItem>
           {(isAdmin || role === 'admin') && (
             <>
-              <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-6 mt-4 mb-2">SEAT ALLOTMENT</div>
-              <MenuItem to="/pattern-allotment">🎯 SEAT ALLOTMENT</MenuItem>
-              <MenuItem to="/allotment-reports">📋 REPORTS</MenuItem>
+              {!collapsed && <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-6 mt-4 mb-2">SEAT ALLOTMENT</div>}
+              <MenuItem to="/pattern-allotment" collapsed={collapsed}>{collapsed ? '🎯' : '🎯 SEAT ALLOTMENT'}</MenuItem>
+              <MenuItem to="/allotment-reports" collapsed={collapsed}>{collapsed ? '📋' : '📋 REPORTS'}</MenuItem>
               
-              <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-6 mt-4 mb-2">MANAGEMENT</div>
-              <MenuItem to="/students">👨‍🎓 STUDENTS</MenuItem>
-              <MenuItem to="/staff">👨‍🏫 INVIGILATORS</MenuItem>
-              <MenuItem to="/rooms">🏢 ROOMS</MenuItem>
-              <MenuItem to="/exams">📅 EXAMS</MenuItem>
-              <MenuItem to="/assign-invigilators">📌 ASSIGN STAFF</MenuItem>
+              {!collapsed && <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-6 mt-4 mb-2">MANAGEMENT</div>}
+              <MenuItem to="/students" collapsed={collapsed}>{collapsed ? '👨‍🎓' : '👨‍🎓 STUDENTS'}</MenuItem>
+              <MenuItem to="/staff" collapsed={collapsed}>{collapsed ? '👨‍🏫' : '👨‍🏫 INVIGILATORS'}</MenuItem>
+              <MenuItem to="/rooms" collapsed={collapsed}>{collapsed ? '🏢' : '🏢 ROOMS'}</MenuItem>
+              <MenuItem to="/exams" collapsed={collapsed}>{collapsed ? '📅' : '📅 EXAMS'}</MenuItem>
+              <MenuItem to="/assign-invigilators" collapsed={collapsed}>{collapsed ? '📌' : '📌 ASSIGN STAFF'}</MenuItem>
             </>
           )}
         </div>
       </div>
 
       <div className="mt-auto">
-        {role && (
+        {role && !collapsed && (
           <div 
             onClick={isAdmin ? openProfileModal : undefined}
             className={`flex items-center gap-3 mb-4 p-3 rounded-lg dark:text-white ${isAdmin ? 'cursor-pointer hover:bg-cyan-200 dark:hover:bg-gray-700 transition-colors' : ''}`}
@@ -89,7 +103,22 @@ export default function Sidebar(){
           </div>
         )}
 
-        <button onClick={logout} className="w-full bg-violet-200 dark:bg-violet-700 px-4 py-2 rounded hover:bg-violet-300 dark:hover:bg-violet-600 transition-colors dark:text-white">LOGOUT</button>
+        {role && collapsed && (
+          <div 
+            onClick={isAdmin ? openProfileModal : undefined}
+            className={`flex items-center justify-center mb-4 ${isAdmin ? 'cursor-pointer' : ''}`}
+          >
+            <div className="w-10 h-10 rounded-full bg-rose-300 flex items-center justify-center text-white font-bold text-lg shadow-lg hover:bg-rose-400 transition-colors">
+              {adminProfile.username?.[0]?.toUpperCase() || 'A'}
+            </div>
+          </div>
+        )}
+
+        {!collapsed && (
+          <button onClick={logout} className="w-full bg-violet-200 dark:bg-violet-700 px-4 py-2 rounded hover:bg-violet-300 dark:hover:bg-violet-600 transition-colors dark:text-white">
+            LOGOUT
+          </button>
+        )}
 
         {/* Admin Profile Modal */}
         <Modal open={profileModalOpen} title="Admin Profile Settings" onClose={()=>setProfileModalOpen(false)}>
