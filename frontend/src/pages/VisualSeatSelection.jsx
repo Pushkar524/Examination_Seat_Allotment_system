@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import SeatGrid from '../components/SeatGrid'
 import Modal from '../components/Modal'
+import Toast from '../components/Toast'
+import ConfirmDialog from '../components/ConfirmDialog'
 import { uploadAPI, allotmentAPI } from '../services/api'
 
 /**
@@ -37,6 +39,40 @@ export default function VisualSeatSelection() {
     room_id: '',
     seat_number: ''
   })
+  
+  // Toast and ConfirmDialog state
+  const [toast, setToast] = useState(null)
+  const [confirmDialog, setConfirmDialog] = useState({ 
+    isOpen: false, 
+    title: '', 
+    message: '', 
+    onConfirm: null,
+    type: 'warning'
+  })
+
+  const showToast = (message, type = 'info') => {
+    setToast({ message, type })
+  }
+
+  const closeToast = () => {
+    setToast(null)
+  }
+
+  const showConfirm = (title, message, onConfirm, type = 'warning') => {
+    setConfirmDialog({ isOpen: true, title, message, onConfirm, type })
+  }
+
+  const closeConfirm = () => {
+    setConfirmDialog({ ...confirmDialog, isOpen: false })
+  }
+
+  const handleConfirm = () => {
+    const callback = confirmDialog.onConfirm
+    closeConfirm()
+    if (callback) {
+      callback()
+    }
+  }
 
   // Load initial data
   useEffect(() => {
@@ -65,7 +101,7 @@ export default function VisualSeatSelection() {
       setAllotments(allotmentsData)
     } catch (error) {
       console.error('Failed to load data:', error)
-      alert('Failed to load data')
+      showToast('Failed to load data', 'error')
     } finally {
       setLoading(false)
     }
@@ -142,12 +178,12 @@ export default function VisualSeatSelection() {
   // Handle assignment submission
   async function handleAssignment() {
     if (!selectedRoom || selectedSeats.length === 0 || selectedStudents.length === 0) {
-      alert('Please select seats and students')
+      showToast('Please select seats and students', 'warning')
       return
     }
 
     if (selectedStudents.length > selectedSeats.length) {
-      alert(`You have selected ${selectedStudents.length} students but only ${selectedSeats.length} seats. Please select fewer students or more seats.`)
+      showToast(`You have selected ${selectedStudents.length} students but only ${selectedSeats.length} seats. Please select fewer students or more seats.`, 'warning')
       return
     }
 
@@ -171,7 +207,7 @@ export default function VisualSeatSelection() {
         ? `Successfully assigned ${selectedStudents.length} students to seats! ${unassignedSeats} seat(s) left unassigned.`
         : `Successfully assigned ${selectedStudents.length} students to seats!`
       
-      alert(message)
+      showToast(message, 'success')
       
       // Reset and reload
       setSelectedSeats([])
@@ -183,7 +219,7 @@ export default function VisualSeatSelection() {
       }
     } catch (error) {
       console.error('Assignment failed:', error)
-      alert(error.message || 'Failed to assign seats')
+      showToast(error.message || 'Failed to assign seats', 'error')
     } finally {
       setLoading(false)
     }
@@ -211,7 +247,7 @@ export default function VisualSeatSelection() {
     e.preventDefault()
     
     if (!editForm.room_id || !editForm.seat_number) {
-      alert('Please fill all fields')
+      showToast('Please fill all fields', 'warning')
       return
     }
 
@@ -227,10 +263,10 @@ export default function VisualSeatSelection() {
       if (selectedRoom) {
         await loadOccupiedSeats(selectedRoom.id)
       }
-      alert('Seat allotment updated successfully!')
+      showToast('Seat allotment updated successfully!', 'success')
     } catch (error) {
       console.error('Update failed:', error)
-      alert(error.message || 'Failed to update allotment')
+      showToast(error.message || 'Failed to update allotment', 'error')
     } finally {
       setLoading(false)
     }
@@ -238,33 +274,39 @@ export default function VisualSeatSelection() {
 
   // Handle delete all allotments
   async function handleDeleteAllAllotments() {
-    if (!window.confirm(`Are you sure you want to delete ALL ${allotments.length} seat allotments? This action cannot be undone!`)) {
-      return
-    }
-
-    if (!window.confirm('This will permanently delete all seat assignments. Are you absolutely sure?')) {
-      return
-    }
-
-    try {
-      setLoading(true)
-      
-      // Delete all allotments one by one
-      for (const allotment of allotments) {
-        await allotmentAPI.deleteAllotment(allotment.id)
-      }
-      
-      await loadData()
-      if (selectedRoom) {
-        await loadOccupiedSeats(selectedRoom.id)
-      }
-      alert('All seat allotments deleted successfully!')
-    } catch (error) {
-      console.error('Delete all failed:', error)
-      alert(error.message || 'Failed to delete all allotments')
-    } finally {
-      setLoading(false)
-    }
+    showConfirm(
+      'Delete All Allotments',
+      `Are you sure you want to delete ALL ${allotments.length} seat allotments? This action cannot be undone!`,
+      () => {
+        showConfirm(
+          'Final Confirmation',
+          'This will permanently delete all seat assignments. Are you absolutely sure?',
+          async () => {
+            try {
+              setLoading(true)
+              
+              // Delete all allotments one by one
+              for (const allotment of allotments) {
+                await allotmentAPI.deleteAllotment(allotment.id)
+              }
+              
+              await loadData()
+              if (selectedRoom) {
+                await loadOccupiedSeats(selectedRoom.id)
+              }
+              showToast('All seat allotments deleted successfully!', 'success')
+            } catch (error) {
+              console.error('Delete all failed:', error)
+              showToast(error.message || 'Failed to delete all allotments', 'error')
+            } finally {
+              setLoading(false)
+            }
+          },
+          'danger'
+        )
+      },
+      'danger'
+    )
   }
 
   if (!isAdmin) {
@@ -609,19 +651,24 @@ export default function VisualSeatSelection() {
                                 Edit
                               </button>
                               <button 
-                                onClick={async () => {
-                                  if (window.confirm('Delete this allotment?')) {
-                                    try {
-                                      await allotmentAPI.deleteAllotment(a.id)
-                                      await loadData()
-                                      if (selectedRoom) {
-                                        await loadOccupiedSeats(selectedRoom.id)
+                                onClick={() => {
+                                  showConfirm(
+                                    'Delete Allotment',
+                                    'Delete this allotment?',
+                                    async () => {
+                                      try {
+                                        await allotmentAPI.deleteAllotment(a.id)
+                                        await loadData()
+                                        if (selectedRoom) {
+                                          await loadOccupiedSeats(selectedRoom.id)
+                                        }
+                                        showToast('Allotment deleted successfully', 'success')
+                                      } catch (error) {
+                                        showToast(error.message || 'Failed to delete', 'error')
                                       }
-                                      alert('Allotment deleted successfully')
-                                    } catch (error) {
-                                      alert(error.message || 'Failed to delete')
-                                    }
-                                  }
+                                    },
+                                    'danger'
+                                  )
                                 }}
                                 className="px-3 py-1 bg-rose-500 hover:bg-rose-600 text-white rounded text-sm transition-colors"
                               >
@@ -701,6 +748,23 @@ export default function VisualSeatSelection() {
           </div>
         </form>
       </Modal>
+      
+      {toast && (
+        <Toast 
+          message={toast.message} 
+          type={toast.type} 
+          onClose={closeToast} 
+        />
+      )}
+      
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={handleConfirm}
+        onCancel={closeConfirm}
+        type={confirmDialog.type}
+      />
     </div>
   )
 }

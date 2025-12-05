@@ -64,8 +64,11 @@ export default function PatternAllotment() {
   }
 
   const handleConfirm = () => {
-    confirmDialog.onConfirm()
+    const callback = confirmDialog.onConfirm
     closeConfirm()
+    if (callback) {
+      callback()
+    }
   }
 
   useEffect(() => {
