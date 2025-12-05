@@ -1,6 +1,8 @@
 import React, {useState, useEffect, useRef} from 'react'
 import { useAuth } from '../context/AuthContext'
 import Modal from '../components/Modal'
+import Toast from '../components/Toast'
+import ConfirmDialog from '../components/ConfirmDialog'
 import { uploadAPI } from '../services/api'
 
 export default function RegisterStaff(){
@@ -11,6 +13,40 @@ export default function RegisterStaff(){
   const [uploadSuccess, setUploadSuccess] = useState('')
   const [uploadErrors, setUploadErrors] = useState([])
   const fileInputRef = useRef(null)
+  
+  // Toast and ConfirmDialog state
+  const [toast, setToast] = useState(null)
+  const [confirmDialog, setConfirmDialog] = useState({ 
+    isOpen: false, 
+    title: '', 
+    message: '', 
+    onConfirm: null,
+    type: 'warning'
+  })
+
+  const showToast = (message, type = 'info') => {
+    setToast({ message, type })
+  }
+
+  const closeToast = () => {
+    setToast(null)
+  }
+
+  const showConfirm = (title, message, onConfirm, type = 'warning') => {
+    setConfirmDialog({ isOpen: true, title, message, onConfirm, type })
+  }
+
+  const closeConfirm = () => {
+    setConfirmDialog({ ...confirmDialog, isOpen: false })
+  }
+
+  const handleConfirm = () => {
+    const callback = confirmDialog.onConfirm
+    closeConfirm()
+    if (callback) {
+      callback()
+    }
+  }
   
   // Manual add state
   const [addModalOpen, setAddModalOpen] = useState(false)
@@ -110,7 +146,7 @@ export default function RegisterStaff(){
       await uploadAPI.addInvigilator(invigilatorForm)
       await loadInvigilators()
       setAddModalOpen(false)
-      alert('Invigilator added successfully!')
+      showToast('Invigilator added successfully!', 'success')
     } catch (error) {
       setFormError(error.message || 'Failed to add invigilator')
     } finally {
@@ -128,7 +164,7 @@ export default function RegisterStaff(){
       await uploadAPI.updateInvigilator(id, data)
       await loadInvigilators()
       setEditModalOpen(false)
-      alert('Invigilator updated successfully!')
+      showToast('Invigilator updated successfully!', 'success')
     } catch (error) {
       setFormError(error.message || 'Failed to update invigilator')
     } finally {
@@ -144,9 +180,9 @@ export default function RegisterStaff(){
       await uploadAPI.deleteInvigilator(deleteId)
       await loadInvigilators()
       setDeleteId(null)
-      alert('Invigilator deleted successfully!')
+      showToast('Invigilator deleted successfully!', 'success')
     } catch (error) {
-      alert(error.message || 'Failed to delete invigilator')
+      showToast(error.message || 'Failed to delete invigilator', 'error')
     } finally {
       setLoading(false)
     }
@@ -154,28 +190,34 @@ export default function RegisterStaff(){
 
   async function handleDeleteAll() {
     if (invigilators.length === 0) {
-      alert('No invigilators to delete')
+      showToast('No invigilators to delete', 'warning')
       return
     }
 
-    if (!window.confirm(`Are you sure you want to delete ALL ${invigilators.length} invigilators? This action cannot be undone!`)) {
-      return
-    }
-
-    if (!window.confirm('This will permanently delete all invigilators. Are you absolutely sure?')) {
-      return
-    }
-
-    try {
-      setLoading(true)
-      const result = await uploadAPI.deleteAllInvigilators()
-      await loadInvigilators()
-      alert(result.message || 'All invigilators deleted successfully!')
-    } catch (error) {
-      alert(error.message || 'Failed to delete all invigilators')
-    } finally {
-      setLoading(false)
-    }
+    showConfirm(
+      'Delete All Invigilators',
+      `Are you sure you want to delete ALL ${invigilators.length} invigilators? This action cannot be undone!`,
+      () => {
+        showConfirm(
+          'Final Confirmation',
+          'This will permanently delete all invigilators. Are you absolutely sure?',
+          async () => {
+            try {
+              setLoading(true)
+              const result = await uploadAPI.deleteAllInvigilators()
+              await loadInvigilators()
+              showToast(result.message || 'All invigilators deleted successfully!', 'success')
+            } catch (error) {
+              showToast(error.message || 'Failed to delete all invigilators', 'error')
+            } finally {
+              setLoading(false)
+            }
+          },
+          'danger'
+        )
+      },
+      'danger'
+    )
   }
 
   return (
@@ -450,6 +492,23 @@ Prof. Maria Johnson,INV002`}
           </div>
         </div>
       </Modal>
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={closeToast}
+        />
+      )}
+
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={handleConfirm}
+        onCancel={closeConfirm}
+        type={confirmDialog.type}
+      />
     </div>
   )
 }
