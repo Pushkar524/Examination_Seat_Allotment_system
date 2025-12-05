@@ -12,21 +12,11 @@ const ConfirmDialog = ({ isOpen, title, message, onConfirm, onCancel, confirmTex
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4">
-        {/* Header */}
-        <div className="flex justify-between items-center px-6 py-4 border-b dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            {title}
-          </h3>
-          <button
-            onClick={onCancel}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-          >
-            Close
-          </button>
-        </div>
-
         {/* Content */}
         <div className="px-6 py-4">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+            {title}
+          </h3>
           <p className="text-gray-700 dark:text-gray-300 whitespace-pre-line">
             {message}
           </p>
