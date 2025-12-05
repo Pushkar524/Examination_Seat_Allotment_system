@@ -1,6 +1,8 @@
 import React, {useState, useEffect, useRef} from 'react'
 import { useAuth } from '../context/AuthContext'
 import Modal from '../components/Modal'
+import Toast from '../components/Toast'
+import ConfirmDialog from '../components/ConfirmDialog'
 import { uploadAPI } from '../services/api'
 
 export default function Rooms(){
@@ -11,6 +13,46 @@ export default function Rooms(){
   const [uploadSuccess, setUploadSuccess] = useState('')
   const [uploadErrors, setUploadErrors] = useState([])
   const fileInputRef = useRef(null)
+  
+  // Toast and Confirm Dialog state
+  const [toast, setToast] = useState(null)
+  const [confirmDialog, setConfirmDialog] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    type: 'warning'
+  })
+
+  const showToast = (message, type = 'info') => {
+    setToast({ message, type })
+  }
+
+  const closeToast = () => {
+    setToast(null)
+  }
+
+  const showConfirm = (title, message, onConfirm, type = 'warning') => {
+    setConfirmDialog({
+      isOpen: true,
+      title,
+      message,
+      onConfirm,
+      type
+    })
+  }
+
+  const closeConfirm = () => {
+    setConfirmDialog({ ...confirmDialog, isOpen: false })
+  }
+
+  const handleConfirm = () => {
+    const callback = confirmDialog.onConfirm
+    closeConfirm()
+    if (callback) {
+      callback()
+    }
+  }
   
   // Manual add state
   const [addModalOpen, setAddModalOpen] = useState(false)
@@ -126,7 +168,7 @@ export default function Rooms(){
       await uploadAPI.addRoom(formData)
       await loadRooms()
       setAddModalOpen(false)
-      alert('Room added successfully!')
+      showToast('Room added successfully!', 'success')
     } catch (error) {
       setFormError(error.message || 'Failed to add room')
     } finally {
@@ -148,10 +190,10 @@ export default function Rooms(){
         number_of_benches: data.number_of_benches ? parseInt(data.number_of_benches) : null,
         seats_per_bench: data.seats_per_bench ? parseInt(data.seats_per_bench) : null
       }
-      await uploadAPI.updateRoom(id, formData)
+      await uploadAPI.updateRoom(roomForm.id, formData)
       await loadRooms()
       setEditModalOpen(false)
-      alert('Room updated successfully!')
+      showToast('Room updated successfully!', 'success')
     } catch (error) {
       setFormError(error.message || 'Failed to update room')
     } finally {
@@ -167,38 +209,44 @@ export default function Rooms(){
       await uploadAPI.deleteRoom(deleteId)
       await loadRooms()
       setDeleteId(null)
-      alert('Room deleted successfully!')
+      showToast('Room deleted successfully!', 'success')
     } catch (error) {
-      alert(error.message || 'Failed to delete room')
+      showToast(error.message || 'Failed to delete room', 'error')
     } finally {
       setLoading(false)
     }
   }
 
-  async function handleDeleteAll() {
+  async function handleDeleteAllRooms() {
     if (rooms.length === 0) {
-      alert('No rooms to delete')
+      showToast('No rooms to delete', 'info')
       return
     }
 
-    if (!window.confirm(`Are you sure you want to delete ALL ${rooms.length} rooms? This action cannot be undone!`)) {
-      return
-    }
-
-    if (!window.confirm('This will permanently delete all rooms. Are you absolutely sure?')) {
-      return
-    }
-
-    try {
-      setLoading(true)
-      const result = await uploadAPI.deleteAllRooms()
-      await loadRooms()
-      alert(result.message || 'All rooms deleted successfully!')
-    } catch (error) {
-      alert(error.message || 'Failed to delete all rooms')
-    } finally {
-      setLoading(false)
-    }
+    showConfirm(
+      'Delete All Rooms',
+      `Are you sure you want to delete ALL ${rooms.length} rooms? This action cannot be undone!`,
+      () => {
+        showConfirm(
+          'Final Confirmation',
+          'This will permanently delete all rooms. Are you absolutely sure?',
+          async () => {
+            try {
+              setLoading(true)
+              const result = await uploadAPI.deleteAllRooms()
+              await loadRooms()
+              showToast(result.message || 'All rooms deleted successfully!', 'success')
+            } catch (error) {
+              showToast(error.message || 'Failed to delete all rooms', 'error')
+            } finally {
+              setLoading(false)
+            }
+          },
+          'danger'
+        )
+      },
+      'danger'
+    )
   }
 
   // Calculate total capacity
@@ -229,7 +277,7 @@ export default function Rooms(){
                 📁 Import Excel/CSV
               </button>
               <button 
-                onClick={handleDeleteAll}
+                onClick={handleDeleteAllRooms}
                 disabled={loading || rooms.length === 0}
                 className="bg-red-500 hover:bg-red-600 disabled:bg-gray-400 disabled:cursor-not-allowed px-4 py-2 rounded transition duration-200 flex items-center gap-2 text-white font-semibold"
               >
@@ -612,6 +660,23 @@ R201,30,2`}
           </div>
         </div>
       </Modal>
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={closeToast}
+        />
+      )}
+
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={handleConfirm}
+        onCancel={closeConfirm}
+        type={confirmDialog.type}
+      />
     </div>
   )
 }
