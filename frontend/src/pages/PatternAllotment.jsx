@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { deptSubjectsAPI, uploadAPI } from '../services/api'
 import Toast from '../components/Toast'
+import ConfirmDialog from '../components/ConfirmDialog'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
 
@@ -27,12 +28,44 @@ export default function PatternAllotment() {
   // Toast notification state
   const [toast, setToast] = useState(null)
 
+  // Confirm dialog state
+  const [confirmDialog, setConfirmDialog] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    confirmText: 'OK',
+    cancelText: 'Cancel',
+    type: 'warning'
+  })
+
   const showToast = (message, type = 'info') => {
     setToast({ message, type })
   }
 
   const closeToast = () => {
     setToast(null)
+  }
+
+  const showConfirm = (title, message, onConfirm, type = 'warning', confirmText = 'OK', cancelText = 'Cancel') => {
+    setConfirmDialog({
+      isOpen: true,
+      title,
+      message,
+      onConfirm,
+      confirmText,
+      cancelText,
+      type
+    })
+  }
+
+  const closeConfirm = () => {
+    setConfirmDialog({ ...confirmDialog, isOpen: false })
+  }
+
+  const handleConfirm = () => {
+    confirmDialog.onConfirm()
+    closeConfirm()
   }
 
   useEffect(() => {
@@ -165,16 +198,16 @@ export default function PatternAllotment() {
       return
     }
 
-    if (!window.confirm(`Perform seat allotment using ${selectedPattern === 'pattern1' ? 'Pattern 1 (Alternating Columns by Subject)' : 'Pattern 2 (Alternate/Mixed Departments)'}?\n\nThis will delete existing allotments for this exam.`)) {
-      return
-    }
-
-    try {
-      setLoading(true)
-      const roomIds = selectedRooms.length > 0 ? selectedRooms : null
-      const result = await deptSubjectsAPI.performSeatAllotment(selectedExam.id, selectedPattern, roomIds)
-      
-      const successMessage = `Seat allotment completed successfully!\n\n` +
+    showConfirm(
+      'Confirm Seat Allotment',
+      `Perform seat allotment using ${selectedPattern === 'pattern1' ? 'Pattern 1 (Alternating Columns by Subject)' : 'Pattern 2 (Alternate/Mixed Departments)'}?\n\nThis will delete existing allotments for this exam.`,
+      async () => {
+        try {
+          setLoading(true)
+          const roomIds = selectedRooms.length > 0 ? selectedRooms : null
+          const result = await deptSubjectsAPI.performSeatAllotment(selectedExam.id, selectedPattern, roomIds)
+          
+          const successMessage = `Seat allotment completed successfully!\n\n` +
         `Students allocated: ${result.allocatedCount}/${result.totalStudents}\n` +
         `Pattern: ${selectedPattern}\n` +
         `Rooms used: ${result.totalRooms}\n` +
@@ -213,28 +246,33 @@ export default function PatternAllotment() {
     } finally {
       setLoading(false)
     }
+      },
+      'warning',
+      'OK',
+      'Cancel'
+    )
   }
 
   async function handleDeleteAllAllotments() {
-    if (!window.confirm(`Are you sure you want to delete ALL ${allotments.length} seat allotments? This action cannot be undone!`)) {
-      return
-    }
-
-    if (!window.confirm('This will permanently delete all seat assignments. Are you absolutely sure?')) {
-      return
-    }
-
-    try {
-      setLoading(true)
-      
-      const token = localStorage.getItem('token')
-      
-      // Delete all allotments one by one
-      for (const allotment of allotments) {
-        await fetch(`${API_BASE_URL}/allotment/allotments/${allotment.id}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`
+    showConfirm(
+      'localhost:5173 says',
+      `Are you sure you want to delete ALL ${allotments.length} seat allotments? This action cannot be undone!`,
+      () => {
+        showConfirm(
+          'localhost:5173 says',
+          'This will permanently delete all seat assignments. Are you absolutely sure?',
+          async () => {
+            try {
+              setLoading(true)
+              
+              const token = localStorage.getItem('token')
+              
+              // Delete all allotments one by one
+              for (const allotment of allotments) {
+                await fetch(`${API_BASE_URL}/allotment/allotments/${allotment.id}`, {
+                  method: 'DELETE',
+                  headers: {
+                    'Authorization': `Bearer ${token}`
           }
         })
       }
@@ -247,6 +285,16 @@ export default function PatternAllotment() {
     } finally {
       setLoading(false)
     }
+          },
+          'danger',
+          'Delete',
+          'Cancel'
+        )
+      },
+      'danger',
+      'OK',
+      'Cancel'
+    )
   }
 
   // Filter allotments based on search and filters
@@ -634,25 +682,32 @@ export default function PatternAllotment() {
                           <td className="border dark:border-gray-600 p-2">
                             <div className="flex gap-2 justify-center">
                               <button 
-                                onClick={async () => {
-                                  if (window.confirm('Delete this allotment?')) {
-                                    try {
-                                      const token = localStorage.getItem('token')
-                                      const response = await fetch(`${API_BASE_URL}/allotment/allotments/${a.id}`, {
-                                        method: 'DELETE',
-                                        headers: {
-                                          'Authorization': `Bearer ${token}`
-                                        }
-                                      })
-                                      
-                                      if (!response.ok) throw new Error('Failed to delete')
-                                      
-                                      await loadAllotments()
-                                      showToast('Allotment deleted successfully', 'success')
-                                    } catch (error) {
-                                      showToast(error.message || 'Failed to delete', 'error')
-                                    }
-                                  }
+                                onClick={() => {
+                                  showConfirm(
+                                    'Confirm Delete',
+                                    'Are you sure you want to delete this student? This action cannot be undone.',
+                                    async () => {
+                                      try {
+                                        const token = localStorage.getItem('token')
+                                        const response = await fetch(`${API_BASE_URL}/allotment/allotments/${a.id}`, {
+                                          method: 'DELETE',
+                                          headers: {
+                                            'Authorization': `Bearer ${token}`
+                                          }
+                                        })
+                                        
+                                        if (!response.ok) throw new Error('Failed to delete')
+                                        
+                                        await loadAllotments()
+                                        showToast('Allotment deleted successfully', 'success')
+                                      } catch (error) {
+                                        showToast(error.message || 'Failed to delete', 'error')
+                                      }
+                                    },
+                                    'danger',
+                                    'Delete',
+                                    'Cancel'
+                                  )
                                 }}
                                 className="px-3 py-1 bg-rose-500 hover:bg-rose-600 text-white rounded text-sm transition-colors"
                               >
@@ -684,6 +739,18 @@ export default function PatternAllotment() {
           duration={5000}
         />
       )}
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={handleConfirm}
+        onCancel={closeConfirm}
+        confirmText={confirmDialog.confirmText}
+        cancelText={confirmDialog.cancelText}
+        type={confirmDialog.type}
+      />
     </div>
   )
 }
