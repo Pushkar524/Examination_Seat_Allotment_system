@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../context/AuthContext'
 import Modal from '../components/Modal'
+import Toast from '../components/Toast'
+import ConfirmDialog from '../components/ConfirmDialog'
 import { examsAPI } from '../services/api'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
@@ -17,6 +19,40 @@ export default function ExamManagement() {
   const [uploadSuccess, setUploadSuccess] = useState('')
   const [uploadErrors, setUploadErrors] = useState([])
   const fileInputRef = useRef(null)
+  
+  // Toast and ConfirmDialog state
+  const [toast, setToast] = useState(null)
+  const [confirmDialog, setConfirmDialog] = useState({ 
+    isOpen: false, 
+    title: '', 
+    message: '', 
+    onConfirm: null,
+    type: 'warning'
+  })
+
+  const showToast = (message, type = 'info') => {
+    setToast({ message, type })
+  }
+
+  const closeToast = () => {
+    setToast(null)
+  }
+
+  const showConfirm = (title, message, onConfirm, type = 'warning') => {
+    setConfirmDialog({ isOpen: true, title, message, onConfirm, type })
+  }
+
+  const closeConfirm = () => {
+    setConfirmDialog({ ...confirmDialog, isOpen: false })
+  }
+
+  const handleConfirm = () => {
+    const callback = confirmDialog.onConfirm
+    closeConfirm()
+    if (callback) {
+      callback()
+    }
+  }
   
   const [examForm, setExamForm] = useState({
     exam_name: '',
@@ -53,7 +89,7 @@ export default function ExamManagement() {
       setExams(data)
     } catch (error) {
       console.error('Failed to load exams:', error)
-      alert('Failed to load exams')
+      showToast('Failed to load exams', 'error')
     } finally {
       setLoading(false)
     }
@@ -186,10 +222,10 @@ export default function ExamManagement() {
 
       await loadExams()
       setModalOpen(false)
-      alert(editMode ? 'Exam updated successfully!' : 'Exam created successfully!')
+      showToast(editMode ? 'Exam updated successfully!' : 'Exam created successfully!', 'success')
     } catch (error) {
       console.error('Error saving exam:', error)
-      alert(error.message || 'Failed to save exam')
+      showToast(error.message || 'Failed to save exam', 'error')
     } finally {
       setLoading(false)
     }
@@ -205,7 +241,7 @@ export default function ExamManagement() {
         const examDate = new Date(currentExam.exam_date)
         const subjectDate = new Date(subjectForm.exam_date)
         if (subjectDate < examDate) {
-          alert('Subject exam date cannot be before the exam date')
+          showToast('Subject exam date cannot be before the exam date', 'error')
           setLoading(false)
           return
         }
@@ -217,7 +253,7 @@ export default function ExamManagement() {
         const subjectStartMinutes = timeToMinutes(subjectForm.start_time)
         
         if (subjectStartMinutes < examStartMinutes) {
-          alert('Subject start time cannot be before exam start time')
+          showToast('Subject start time cannot be before exam start time', 'error')
           setLoading(false)
           return
         }
@@ -229,7 +265,7 @@ export default function ExamManagement() {
         const subjectEndMinutes = timeToMinutes(subjectForm.end_time)
         
         if (subjectEndMinutes > examEndMinutes) {
-          alert('Subject end time cannot exceed exam end time')
+          showToast('Subject end time cannot exceed exam end time', 'error')
           setLoading(false)
           return
         }
@@ -252,10 +288,10 @@ export default function ExamManagement() {
 
       await loadExams()
       setSubjectModalOpen(false)
-      alert('Subject added successfully!')
+      showToast('Subject added successfully!', 'success')
     } catch (error) {
       console.error('Error adding subject:', error)
-      alert(error.message || 'Failed to add subject')
+      showToast(error.message || 'Failed to add subject', 'error')
     } finally {
       setLoading(false)
     }
@@ -278,78 +314,90 @@ export default function ExamManagement() {
   }
 
   async function handleDeleteExam(examId) {
-    if (!window.confirm('Are you sure you want to delete this exam? This will also delete all associated subjects.')) {
-      return
-    }
+    showConfirm(
+      'Delete Exam',
+      'Are you sure you want to delete this exam? This will also delete all associated subjects.',
+      async () => {
+        try {
+          const token = localStorage.getItem('token')
+          const response = await fetch(`${API_BASE_URL}/exams/exams/${examId}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
 
-    try {
-      const token = localStorage.getItem('token')
-      const response = await fetch(`${API_BASE_URL}/exams/exams/${examId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
+          if (!response.ok) throw new Error('Failed to delete exam')
+
+          await loadExams()
+          showToast('Exam deleted successfully!', 'success')
+        } catch (error) {
+          console.error('Error deleting exam:', error)
+          showToast(error.message || 'Failed to delete exam', 'error')
         }
-      })
-
-      if (!response.ok) throw new Error('Failed to delete exam')
-
-      await loadExams()
-      alert('Exam deleted successfully!')
-    } catch (error) {
-      console.error('Error deleting exam:', error)
-      alert(error.message || 'Failed to delete exam')
-    }
+      },
+      'danger'
+    )
   }
 
   async function handleDeleteSubject(examId, subjectId) {
-    if (!window.confirm('Are you sure you want to delete this subject?')) {
-      return
-    }
+    showConfirm(
+      'Delete Subject',
+      'Are you sure you want to delete this subject?',
+      async () => {
+        try {
+          const token = localStorage.getItem('token')
+          const response = await fetch(`${API_BASE_URL}/exams/exams/${examId}/subjects/${subjectId}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
 
-    try {
-      const token = localStorage.getItem('token')
-      const response = await fetch(`${API_BASE_URL}/exams/exams/${examId}/subjects/${subjectId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
+          if (!response.ok) throw new Error('Failed to delete subject')
+
+          await loadExams()
+          showToast('Subject deleted successfully!', 'success')
+        } catch (error) {
+          console.error('Error deleting subject:', error)
+          showToast(error.message || 'Failed to delete subject', 'error')
         }
-      })
-
-      if (!response.ok) throw new Error('Failed to delete subject')
-
-      await loadExams()
-      alert('Subject deleted successfully!')
-    } catch (error) {
-      console.error('Error deleting subject:', error)
-      alert(error.message || 'Failed to delete subject')
-    }
+      },
+      'danger'
+    )
   }
 
   async function handleDeleteAllExams() {
     if (exams.length === 0) {
-      alert('No exams to delete')
+      showToast('No exams to delete', 'info')
       return
     }
 
-    if (!window.confirm(`Are you sure you want to delete ALL ${exams.length} exams? This will also delete all associated subjects!`)) {
-      return
-    }
-
-    if (!window.confirm('This will permanently delete all exams and their subjects. Are you absolutely sure?')) {
-      return
-    }
-
-    try {
-      setLoading(true)
-      const result = await examsAPI.deleteAllExams()
-      await loadExams()
-      alert(result.message || 'All exams deleted successfully!')
-    } catch (error) {
-      console.error('Error deleting all exams:', error)
-      alert(error.message || 'Failed to delete all exams')
-    } finally {
-      setLoading(false)
-    }
+    showConfirm(
+      'Delete All Exams',
+      `Are you sure you want to delete ALL ${exams.length} exams? This will also delete all associated subjects!`,
+      () => {
+        showConfirm(
+          'Final Confirmation',
+          'This will permanently delete all exams and their subjects. Are you absolutely sure?',
+          async () => {
+            try {
+              setLoading(true)
+              const result = await examsAPI.deleteAllExams()
+              await loadExams()
+              showToast(result.message || 'All exams deleted successfully!', 'success')
+            } catch (error) {
+              console.error('Error deleting all exams:', error)
+              showToast(error.message || 'Failed to delete all exams', 'error')
+            } finally {
+              setLoading(false)
+            }
+          },
+          'danger'
+        )
+      },
+      'danger'
+    )
   }
 
   if (!isAdmin) {
@@ -756,6 +804,23 @@ Chemistry,CHEM101,2025-12-13,09:00,11:00`}
           )}
         </div>
       </Modal>
+      
+      {toast && (
+        <Toast 
+          message={toast.message} 
+          type={toast.type} 
+          onClose={closeToast} 
+        />
+      )}
+      
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={handleConfirm}
+        onCancel={closeConfirm}
+        type={confirmDialog.type}
+      />
     </div>
   )
 }
