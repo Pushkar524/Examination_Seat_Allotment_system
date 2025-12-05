@@ -10,3 +10,19 @@
 .btn-primary{ @apply bg-rose-300 text-black px-6 py-2 rounded; }
 .card{ @apply bg-gray-100 p-6 rounded shadow-sm; }
 .input{ @apply bg-cyan-200 px-4 py-3 rounded w-full border border-gray-300; }
+
+/* Toast animation */
+@keyframes slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out;
+}

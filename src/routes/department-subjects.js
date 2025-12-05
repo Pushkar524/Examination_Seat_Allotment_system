@@ -274,15 +274,30 @@ router.post('/exams/:examId/allot-seats', authMiddleware(['admin']), async (req,
     // Calculate total available seats
     const totalSeats = rooms.reduce((sum, room) => sum + room.capacity, 0);
     
-    if (orderedStudents.length > totalSeats) {
+    // Get total students to allocate (handling pattern1 structure)
+    const totalStudentsToAllocate = pattern === 'pattern1' 
+      ? Object.values(orderedStudents.bySubject).reduce((sum, arr) => sum + arr.length, 0)
+      : orderedStudents.length;
+    
+    if (totalStudentsToAllocate > totalSeats) {
       await client.query('ROLLBACK');
+      const shortage = totalStudentsToAllocate - totalSeats;
+      const roomsNeeded = Math.ceil(shortage / (rooms[0]?.capacity || 30));
       return res.status(400).json({ 
-        error: `Not enough seats: ${orderedStudents.length} students need ${orderedStudents.length} seats, but only ${totalSeats} available` 
+        error: `Insufficient classroom capacity`,
+        details: {
+          totalStudents: totalStudentsToAllocate,
+          availableSeats: totalSeats,
+          shortageOfSeats: shortage,
+          additionalRoomsNeeded: roomsNeeded,
+          message: `Need ${shortage} more seats. Please add approximately ${roomsNeeded} more room(s) or select additional rooms for this exam.`
+        }
       });
     }
     
     // Allocate seats based on pattern
     let allocatedCount = 0;
+    const unallocatedStudents = [];
     
     if (pattern === 'pattern1') {
       // Pattern 1: Optimal column allocation with smart buffer usage
@@ -355,6 +370,13 @@ router.post('/exams/:examId/allot-seats', authMiddleware(['admin']), async (req,
         const allAllocated = subjectKeys.every(key => studentsBySubject[key].length === 0);
         if (allAllocated) break;
       }
+      
+      // Collect unallocated students
+      for (const subjectId of subjectKeys) {
+        if (studentsBySubject[subjectId].length > 0) {
+          unallocatedStudents.push(...studentsBySubject[subjectId]);
+        }
+      }
     } else {
       // Pattern 2: Sequential allocation
       let currentRoomIndex = 0;
@@ -362,7 +384,8 @@ router.post('/exams/:examId/allot-seats', authMiddleware(['admin']), async (req,
       
       for (const student of orderedStudents) {
         if (currentRoomIndex >= rooms.length) {
-          break; // No more rooms available
+          unallocatedStudents.push(student);
+          continue;
         }
         
         const room = rooms[currentRoomIndex];
@@ -384,13 +407,36 @@ router.post('/exams/:examId/allot-seats', authMiddleware(['admin']), async (req,
       }
     }
     
+    // Check if there are unallocated students
+    if (unallocatedStudents.length > 0) {
+      await client.query('ROLLBACK');
+      const roomsNeeded = Math.ceil(unallocatedStudents.length / (rooms[0]?.capacity || 30));
+      return res.status(400).json({
+        error: 'Insufficient classroom capacity - allocation incomplete',
+        details: {
+          totalStudents: totalStudentsToAllocate,
+          studentsAllocated: allocatedCount,
+          studentsUnallocated: unallocatedStudents.length,
+          availableSeats: totalSeats,
+          additionalRoomsNeeded: roomsNeeded,
+          message: `${unallocatedStudents.length} students could not be allocated seats. Please add approximately ${roomsNeeded} more room(s) or select additional rooms for this exam.`,
+          unallocatedStudentsList: unallocatedStudents.map(s => ({
+            rollNo: s.roll_no,
+            department: s.department
+          })).slice(0, 10) // Show first 10 unallocated students
+        }
+      });
+    }
+    
     await client.query('COMMIT');
     
     res.json({ 
       message: 'Seat allotment completed successfully',
       pattern,
       allocatedCount,
-      totalRooms: rooms.length
+      totalRooms: rooms.length,
+      totalStudents: totalStudentsToAllocate,
+      utilizationPercentage: Math.round((allocatedCount / totalSeats) * 100)
     });
     
   } catch (error) {

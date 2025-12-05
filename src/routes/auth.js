@@ -62,11 +62,12 @@ router.post('/login/student', async (req, res) => {
 
     console.log('Student login attempt:', { roll_no, date_of_birth });
 
+    // Use DATE casting to ignore timezone issues
     const result = await pool.query(
       `SELECT s.*, u.id as user_id, u.email, u.role 
        FROM students s
        JOIN users u ON s.user_id = u.id
-       WHERE s.roll_no = $1 AND s.date_of_birth = $2`,
+       WHERE s.roll_no = $1 AND s.date_of_birth::date = $2::date`,
       [roll_no, date_of_birth]
     );
 
@@ -75,7 +76,7 @@ router.post('/login/student', async (req, res) => {
     if (result.rows.length === 0) {
       // Check if student exists with this roll number
       const checkStudent = await pool.query(
-        'SELECT roll_no, date_of_birth FROM students WHERE roll_no = $1',
+        'SELECT roll_no, date_of_birth::date as date_of_birth FROM students WHERE roll_no = $1',
         [roll_no]
       );
       

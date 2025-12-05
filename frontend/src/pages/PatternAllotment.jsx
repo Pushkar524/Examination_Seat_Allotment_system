@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { deptSubjectsAPI, uploadAPI } from '../services/api'
+import Toast from '../components/Toast'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
 
@@ -23,6 +24,17 @@ export default function PatternAllotment() {
   const [courseFilter, setCourseFilter] = useState('')
   const [roomFilter, setRoomFilter] = useState('')
 
+  // Toast notification state
+  const [toast, setToast] = useState(null)
+
+  const showToast = (message, type = 'info') => {
+    setToast({ message, type })
+  }
+
+  const closeToast = () => {
+    setToast(null)
+  }
+
   useEffect(() => {
     if (isAdmin) {
       loadInitialData()
@@ -42,7 +54,7 @@ export default function PatternAllotment() {
       await loadAllotments()
     } catch (error) {
       console.error('Failed to load initial data:', error)
-      alert('Failed to load data: ' + error.message)
+      showToast('Failed to load data: ' + error.message, 'error')
     } finally {
       setLoading(false)
     }
@@ -115,7 +127,7 @@ export default function PatternAllotment() {
 
   async function handleSaveMappings() {
     if (Object.keys(mappings).length === 0) {
-      alert('Please map at least one department to a subject')
+      showToast('Please map at least one department to a subject', 'warning')
       return
     }
 
@@ -127,11 +139,11 @@ export default function PatternAllotment() {
       }))
       
       await deptSubjectsAPI.bulkUpdateDepartmentSubjects(selectedExam.id, mappingsArray)
-      alert('Subject mappings saved successfully!')
+      showToast('Subject mappings saved successfully!', 'success')
       setStep(3)
     } catch (error) {
       console.error('Failed to save mappings:', error)
-      alert('Failed to save mappings: ' + error.message)
+      showToast('Failed to save mappings: ' + error.message, 'error')
     } finally {
       setLoading(false)
     }
@@ -149,7 +161,7 @@ export default function PatternAllotment() {
 
   async function handlePerformAllotment() {
     if (!selectedPattern) {
-      alert('Please select a pattern')
+      showToast('Please select a pattern', 'warning')
       return
     }
 
@@ -162,7 +174,13 @@ export default function PatternAllotment() {
       const roomIds = selectedRooms.length > 0 ? selectedRooms : null
       const result = await deptSubjectsAPI.performSeatAllotment(selectedExam.id, selectedPattern, roomIds)
       
-      alert(`✅ Seat allotment completed successfully!\n\n${result.allocatedCount} students allocated\nPattern: ${selectedPattern}\nRooms used: ${result.totalRooms}`)
+      const successMessage = `Seat allotment completed successfully!\n\n` +
+        `Students allocated: ${result.allocatedCount}/${result.totalStudents}\n` +
+        `Pattern: ${selectedPattern}\n` +
+        `Rooms used: ${result.totalRooms}\n` +
+        `Capacity utilization: ${result.utilizationPercentage}%`
+      
+      showToast(successMessage, 'success')
       
       // Reload allotments
       await loadAllotments()
@@ -174,7 +192,24 @@ export default function PatternAllotment() {
       setStep(1)
     } catch (error) {
       console.error('Allotment failed:', error)
-      alert('Failed to perform allotment: ' + error.message)
+      
+      // Check if error has detailed information
+      if (error.response?.data?.details) {
+        const details = error.response.data.details
+        const errorMessage = `${error.response.data.error}\n\n` +
+          `Total students: ${details.totalStudents}\n` +
+          `Available seats: ${details.availableSeats}\n` +
+          `Shortage: ${details.shortageOfSeats || details.studentsUnallocated} seats\n` +
+          `Additional rooms needed: ${details.additionalRoomsNeeded}\n\n` +
+          `${details.message}\n\n` +
+          (details.unallocatedStudentsList ? 
+            `First unallocated students:\n${details.unallocatedStudentsList.map(s => `• ${s.rollNo} (${s.department})`).join('\n')}` 
+            : '')
+        
+        showToast(errorMessage, 'error')
+      } else {
+        showToast('Failed to perform allotment: ' + (error.response?.data?.error || error.message), 'error')
+      }
     } finally {
       setLoading(false)
     }
@@ -205,10 +240,10 @@ export default function PatternAllotment() {
       }
       
       await loadAllotments()
-      alert('All seat allotments deleted successfully!')
+      showToast('All seat allotments deleted successfully!', 'success')
     } catch (error) {
       console.error('Delete all failed:', error)
-      alert(error.message || 'Failed to delete all allotments')
+      showToast(error.message || 'Failed to delete all allotments', 'error')
     } finally {
       setLoading(false)
     }
@@ -613,9 +648,9 @@ export default function PatternAllotment() {
                                       if (!response.ok) throw new Error('Failed to delete')
                                       
                                       await loadAllotments()
-                                      alert('Allotment deleted successfully')
+                                      showToast('Allotment deleted successfully', 'success')
                                     } catch (error) {
-                                      alert(error.message || 'Failed to delete')
+                                      showToast(error.message || 'Failed to delete', 'error')
                                     }
                                   }
                                 }}
@@ -638,6 +673,16 @@ export default function PatternAllotment() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Toast Notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={closeToast}
+          duration={5000}
+        />
       )}
     </div>
   )
