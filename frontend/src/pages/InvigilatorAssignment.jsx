@@ -1,6 +1,8 @@
 import React, {useState, useEffect} from 'react'
 import { useAuth } from '../context/AuthContext'
 import { uploadAPI } from '../services/api'
+import Toast from '../components/Toast'
+import ConfirmDialog from '../components/ConfirmDialog'
 
 export default function InvigilatorAssignment(){
   const { isAdmin } = useAuth()
@@ -8,6 +10,40 @@ export default function InvigilatorAssignment(){
   const [rooms, setRooms] = useState([])
   const [loading, setLoading] = useState(false)
   const [filter, setFilter] = useState('')
+  
+  // Toast and ConfirmDialog state
+  const [toast, setToast] = useState(null)
+  const [confirmDialog, setConfirmDialog] = useState({ 
+    isOpen: false, 
+    title: '', 
+    message: '', 
+    onConfirm: null,
+    type: 'warning'
+  })
+
+  const showToast = (message, type = 'info') => {
+    setToast({ message, type })
+  }
+
+  const closeToast = () => {
+    setToast(null)
+  }
+
+  const showConfirm = (title, message, onConfirm, type = 'warning') => {
+    setConfirmDialog({ isOpen: true, title, message, onConfirm, type })
+  }
+
+  const closeConfirm = () => {
+    setConfirmDialog({ ...confirmDialog, isOpen: false })
+  }
+
+  const handleConfirm = () => {
+    const callback = confirmDialog.onConfirm
+    closeConfirm()
+    if (callback) {
+      callback()
+    }
+  }
 
   useEffect(() => {
     if (isAdmin) {
@@ -28,7 +64,7 @@ export default function InvigilatorAssignment(){
       setRooms(roomsData)
     } catch (error) {
       console.error('Failed to load data:', error)
-      alert(error.message || 'Failed to load data')
+      showToast(error.message || 'Failed to load data', 'error')
     } finally {
       setLoading(false)
     }
@@ -41,7 +77,7 @@ export default function InvigilatorAssignment(){
       setLoading(true)
       await uploadAPI.assignInvigilator(invigilatorId, roomId === '' ? null : roomId)
       await loadData() // Reload data to reflect changes
-      alert(roomId === '' ? 'Invigilator unassigned successfully!' : 'Invigilator assigned successfully!')
+      showToast(roomId === '' ? 'Invigilator unassigned successfully!' : 'Invigilator assigned successfully!', 'success')
     } catch (error) {
       console.error('Assignment failed:', error)
       // Extract the error message from the response
@@ -50,9 +86,9 @@ export default function InvigilatorAssignment(){
       
       // Show detailed error if room is already assigned
       if (assignedTo) {
-        alert(`${errorMessage}\nCurrently assigned to: ${assignedTo}`)
+        showToast(`${errorMessage}\nCurrently assigned to: ${assignedTo}`, 'error')
       } else {
-        alert(errorMessage)
+        showToast(errorMessage, 'error')
       }
     } finally {
       setLoading(false)
@@ -195,6 +231,23 @@ export default function InvigilatorAssignment(){
           Select "-- Select Room --" to unassign an invigilator from their current room.
         </p>
       </div>
+      
+      {toast && (
+        <Toast 
+          message={toast.message} 
+          type={toast.type} 
+          onClose={closeToast} 
+        />
+      )}
+      
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={handleConfirm}
+        onCancel={closeConfirm}
+        type={confirmDialog.type}
+      />
     </div>
   )
 }

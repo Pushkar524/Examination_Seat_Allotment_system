@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { allotmentAPI, exportAPI, uploadAPI } from '../services/api';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import Toast from '../components/Toast';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 const AllotmentReports = () => {
   const [allotments, setAllotments] = useState([]);
@@ -14,6 +16,40 @@ const AllotmentReports = () => {
   const [departmentFilter, setDepartmentFilter] = useState('');
   const [roomFilter, setRoomFilter] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Toast and ConfirmDialog state
+  const [toast, setToast] = useState(null);
+  const [confirmDialog, setConfirmDialog] = useState({ 
+    isOpen: false, 
+    title: '', 
+    message: '', 
+    onConfirm: null,
+    type: 'warning'
+  });
+
+  const showToast = (message, type = 'info') => {
+    setToast({ message, type });
+  };
+
+  const closeToast = () => {
+    setToast(null);
+  };
+
+  const showConfirm = (title, message, onConfirm, type = 'warning') => {
+    setConfirmDialog({ isOpen: true, title, message, onConfirm, type });
+  };
+
+  const closeConfirm = () => {
+    setConfirmDialog({ ...confirmDialog, isOpen: false });
+  };
+
+  const handleConfirm = () => {
+    const callback = confirmDialog.onConfirm;
+    closeConfirm();
+    if (callback) {
+      callback();
+    }
+  };
 
   useEffect(() => {
     fetchAllotments();
@@ -88,7 +124,7 @@ const AllotmentReports = () => {
       await exportAPI.exportExcel();
     } catch (error) {
       console.error('Export failed:', error);
-      alert(error.message || 'Failed to export');
+      showToast(error.message || 'Failed to export', 'error');
     } finally {
       setLoading(false);
     }
@@ -100,7 +136,7 @@ const AllotmentReports = () => {
       await exportAPI.exportPDF();
     } catch (error) {
       console.error('Export failed:', error);
-      alert(error.message || 'Failed to export');
+      showToast(error.message || 'Failed to export', 'error');
     } finally {
       setLoading(false);
     }
@@ -109,7 +145,7 @@ const AllotmentReports = () => {
   // Export filtered data as CSV
   const exportFilteredCSV = () => {
     if (filteredAllotments.length === 0) {
-      alert('No data to export');
+      showToast('No data to export', 'info');
       return;
     }
 
@@ -766,6 +802,23 @@ const AllotmentReports = () => {
           </div>
         )}
       </div>
+      
+      {toast && (
+        <Toast 
+          message={toast.message} 
+          type={toast.type} 
+          onClose={closeToast} 
+        />
+      )}
+      
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={handleConfirm}
+        onCancel={closeConfirm}
+        type={confirmDialog.type}
+      />
     </div>
   );
 };
