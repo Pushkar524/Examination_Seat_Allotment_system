@@ -372,13 +372,13 @@ export default function RegisterStudents(){
       <Modal open={uploadModalOpen} title="Import Students from Excel/CSV" onClose={()=>setUploadModalOpen(false)}>
         <div className="p-4 space-y-4">
           {/* Instructions */}
-          <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
-            <h4 className="font-semibold text-blue-900 mb-2">📋 File Format Requirements</h4>
-            <p className="text-sm text-blue-800 mb-2">Your Excel/CSV file must contain the following columns:</p>
-            <div className="bg-white p-3 rounded border border-blue-200 text-sm font-mono">
+          <div className="bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-500 dark:border-blue-400 p-4 rounded">
+            <h4 className="font-semibold text-blue-900 dark:text-blue-200 mb-2">📋 File Format Requirements</h4>
+            <p className="text-sm text-blue-800 dark:text-blue-300 mb-2">Your Excel/CSV file must contain the following columns:</p>
+            <div className="bg-white dark:bg-gray-800 p-3 rounded border border-blue-200 dark:border-blue-600 text-sm font-mono dark:text-gray-300">
               name, roll_no, date_of_birth, department, academic_year
             </div>
-            <div className="mt-3 space-y-1 text-sm text-blue-800">
+            <div className="mt-3 space-y-1 text-sm text-blue-800 dark:text-blue-300">
               <p>• <strong>name</strong>: Full name of the student</p>
               <p>• <strong>roll_no</strong>: Unique roll number (e.g., CS2021001)</p>
               <p>• <strong>date_of_birth</strong>: Format: YYYY-MM-DD (e.g., 2003-05-15)</p>
@@ -388,9 +388,9 @@ export default function RegisterStudents(){
           </div>
 
           {/* Example */}
-          <div className="bg-gray-50 p-3 rounded border">
-            <h5 className="text-sm font-semibold mb-2">Example content:</h5>
-            <pre className="text-xs bg-white p-2 rounded border overflow-x-auto">
+          <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded border dark:border-gray-700">
+            <h5 className="text-sm font-semibold mb-2 dark:text-white">Example content:</h5>
+            <pre className="text-xs bg-white dark:bg-gray-900 dark:text-gray-300 p-2 rounded border dark:border-gray-700 overflow-x-auto">
 {`name,roll_no,date_of_birth,department,academic_year
 John Doe,CS2021001,2003-05-15,Computer Science,2021-2025
 Jane Smith,CS2021002,2003-08-20,Computer Science,2021-2025`}

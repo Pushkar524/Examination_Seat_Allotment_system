@@ -344,13 +344,13 @@ export default function Rooms(){
       <Modal open={uploadModalOpen} title="Import Rooms from Excel/CSV" onClose={()=>setUploadModalOpen(false)}>
         <div className="p-4 space-y-4">
           {/* Instructions */}
-          <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
-            <h4 className="font-semibold text-blue-900 mb-2">📋 File Format Requirements</h4>
-            <p className="text-sm text-blue-800 mb-2">Your Excel/CSV file must contain the following columns:</p>
-            <div className="bg-white p-3 rounded border border-blue-200 text-sm font-mono">
+          <div className="bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-500 dark:border-blue-400 p-4 rounded">
+            <h4 className="font-semibold text-blue-900 dark:text-blue-200 mb-2">📋 File Format Requirements</h4>
+            <p className="text-sm text-blue-800 dark:text-blue-300 mb-2">Your Excel/CSV file must contain the following columns:</p>
+            <div className="bg-white dark:bg-gray-800 p-3 rounded border border-blue-200 dark:border-blue-600 text-sm font-mono dark:text-gray-300">
               room_no, capacity, floor
             </div>
-            <div className="mt-3 space-y-1 text-sm text-blue-800">
+            <div className="mt-3 space-y-1 text-sm text-blue-800 dark:text-blue-300">
               <p>• <strong>room_no</strong>: Room number (e.g., R101, A-203)</p>
               <p>• <strong>capacity</strong>: Number of seats (e.g., 30)</p>
               <p>• <strong>floor</strong>: Floor number or name (e.g., 1, Ground)</p>
@@ -358,9 +358,9 @@ export default function Rooms(){
           </div>
 
           {/* Example */}
-          <div className="bg-gray-50 p-3 rounded border">
-            <h5 className="text-sm font-semibold mb-2">Example content:</h5>
-            <pre className="text-xs bg-white p-2 rounded border overflow-x-auto">
+          <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded border dark:border-gray-700">
+            <h5 className="text-sm font-semibold mb-2 dark:text-white">Example content:</h5>
+            <pre className="text-xs bg-white dark:bg-gray-900 dark:text-gray-300 p-2 rounded border dark:border-gray-700 overflow-x-auto">
 {`room_no,capacity,floor
 R101,30,1
 R102,25,1
