@@ -147,6 +147,14 @@ router.post('/exams/:examId/allot-seats', authMiddleware(['admin']), async (req,
     
     await client.query('BEGIN');
     
+    // Get exam details including strict_mode
+    const examResult = await client.query('SELECT strict_mode FROM exams WHERE id = $1', [examId]);
+    if (examResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Exam not found' });
+    }
+    const strictMode = examResult.rows[0].strict_mode !== false; // Default to true if null
+    
     // Get department-subject mappings for this exam
     const mappingsResult = await client.query(`
       SELECT ds.*, es.subject_name
@@ -300,75 +308,123 @@ router.post('/exams/:examId/allot-seats', authMiddleware(['admin']), async (req,
     const unallocatedStudents = [];
     
     if (pattern === 'pattern1') {
-      // Pattern 1: Optimal column allocation with smart buffer usage
+      // Pattern 1: Column allocation with strict/lenient mode
       const studentsBySubject = orderedStudents.bySubject;
       const subjectKeys = orderedStudents.subjectKeys;
       
-      for (const room of rooms) {
-        const numBenches = room.number_of_benches || 10;
-        const seatsPerBench = room.seats_per_bench || 4;
-        
-        // Track which subject is in each column
-        const columnSubjects = new Array(seatsPerBench).fill(null);
-        let currentSubjectIndex = 0;
-        
-        for (let col = 0; col < seatsPerBench; col++) {
-          // Find a subject that can be placed in this column
-          let placed = false;
-          let attempts = 0;
+      if (strictMode) {
+        // STRICT MODE: No same-subject students can sit adjacent (original logic)
+        for (const room of rooms) {
+          const numBenches = room.number_of_benches || 10;
+          const seatsPerBench = room.seats_per_bench || 4;
           
-          while (!placed && attempts < subjectKeys.length) {
-            const subjectId = subjectKeys[currentSubjectIndex % subjectKeys.length];
-            const studentsForThisSubject = studentsBySubject[subjectId];
+          // Track which subject is in each column
+          const columnSubjects = new Array(seatsPerBench).fill(null);
+          let currentSubjectIndex = 0;
+          
+          for (let col = 0; col < seatsPerBench; col++) {
+            // Find a subject that can be placed in this column
+            let placed = false;
+            let attempts = 0;
             
-            if (!studentsForThisSubject || studentsForThisSubject.length === 0) {
-              currentSubjectIndex++;
-              attempts++;
-              continue;
-            }
-            
-            // Check if this subject is different from adjacent columns
-            const leftSubject = col > 0 ? columnSubjects[col - 1] : null;
-            const rightSubject = col < seatsPerBench - 1 ? columnSubjects[col + 1] : null;
-            
-            const isDifferentFromLeft = !leftSubject || leftSubject !== subjectId;
-            const isDifferentFromRight = !rightSubject || rightSubject !== subjectId;
-            
-            if (isDifferentFromLeft && isDifferentFromRight) {
-              // Safe to place this subject here
-              for (let bench = 0; bench < numBenches && studentsForThisSubject.length > 0; bench++) {
-                const seatNumber = col * numBenches + bench + 1;
-                if (seatNumber > room.capacity) break;
-                
-                const student = studentsForThisSubject.shift();
-                
-                await client.query(`
-                  INSERT INTO seat_allotments (student_id, room_id, seat_number, exam_id, subject_id, allotment_pattern)
-                  VALUES ($1, $2, $3, $4, $5, $6)
-                `, [student.id, room.id, seatNumber, examId, student.subject_id, pattern]);
-                
-                allocatedCount++;
+            while (!placed && attempts < subjectKeys.length) {
+              const subjectId = subjectKeys[currentSubjectIndex % subjectKeys.length];
+              const studentsForThisSubject = studentsBySubject[subjectId];
+              
+              if (!studentsForThisSubject || studentsForThisSubject.length === 0) {
+                currentSubjectIndex++;
+                attempts++;
+                continue;
               }
               
-              columnSubjects[col] = subjectId;
-              placed = true;
-              currentSubjectIndex++;
-            } else {
-              // Try next subject
+              // Check if this subject is different from adjacent columns
+              const leftSubject = col > 0 ? columnSubjects[col - 1] : null;
+              const rightSubject = col < seatsPerBench - 1 ? columnSubjects[col + 1] : null;
+              
+              const isDifferentFromLeft = !leftSubject || leftSubject !== subjectId;
+              const isDifferentFromRight = !rightSubject || rightSubject !== subjectId;
+              
+              if (isDifferentFromLeft && isDifferentFromRight) {
+                // Safe to place this subject here
+                for (let bench = 0; bench < numBenches && studentsForThisSubject.length > 0; bench++) {
+                  const seatNumber = col * numBenches + bench + 1;
+                  if (seatNumber > room.capacity) break;
+                  
+                  const student = studentsForThisSubject.shift();
+                  
+                  await client.query(`
+                    INSERT INTO seat_allotments (student_id, room_id, seat_number, exam_id, subject_id, allotment_pattern)
+                    VALUES ($1, $2, $3, $4, $5, $6)
+                  `, [student.id, room.id, seatNumber, examId, student.subject_id, pattern]);
+                  
+                  allocatedCount++;
+                }
+                
+                columnSubjects[col] = subjectId;
+                placed = true;
+                currentSubjectIndex++;
+              } else {
+                // Try next subject
+                currentSubjectIndex++;
+                attempts++;
+              }
+            }
+            
+            // If no subject could be placed, leave empty and continue
+            if (!placed) {
+              columnSubjects[col] = null; // Empty column
+            }
+          }
+          
+          // Check if all students are allocated
+          const allAllocated = subjectKeys.every(key => studentsBySubject[key].length === 0);
+          if (allAllocated) break;
+        }
+      } else {
+        // LENIENT MODE: Allow same-subject students adjacent, simple column-wise filling
+        for (const room of rooms) {
+          const numBenches = room.number_of_benches || 10;
+          const seatsPerBench = room.seats_per_bench || 4;
+          
+          let currentSubjectIndex = 0;
+          
+          // Fill column by column with any available subject
+          for (let col = 0; col < seatsPerBench; col++) {
+            let columnFilled = false;
+            let attempts = 0;
+            
+            // Try to fill this column with students from any subject
+            while (!columnFilled && attempts < subjectKeys.length) {
+              const subjectId = subjectKeys[currentSubjectIndex % subjectKeys.length];
+              const studentsForThisSubject = studentsBySubject[subjectId];
+              
+              if (studentsForThisSubject && studentsForThisSubject.length > 0) {
+                // Fill this column with students from this subject
+                for (let bench = 0; bench < numBenches && studentsForThisSubject.length > 0; bench++) {
+                  const seatNumber = col * numBenches + bench + 1;
+                  if (seatNumber > room.capacity) break;
+                  
+                  const student = studentsForThisSubject.shift();
+                  
+                  await client.query(`
+                    INSERT INTO seat_allotments (student_id, room_id, seat_number, exam_id, subject_id, allotment_pattern)
+                    VALUES ($1, $2, $3, $4, $5, $6)
+                  `, [student.id, room.id, seatNumber, examId, student.subject_id, pattern]);
+                  
+                  allocatedCount++;
+                }
+                columnFilled = true;
+              }
+              
               currentSubjectIndex++;
               attempts++;
             }
           }
           
-          // If no subject could be placed, leave empty and continue
-          if (!placed) {
-            columnSubjects[col] = null; // Empty column
-          }
+          // Check if all students are allocated
+          const allAllocated = subjectKeys.every(key => studentsBySubject[key].length === 0);
+          if (allAllocated) break;
         }
-        
-        // Check if all students are allocated
-        const allAllocated = subjectKeys.every(key => studentsBySubject[key].length === 0);
-        if (allAllocated) break;
       }
       
       // Collect unallocated students
