@@ -134,7 +134,7 @@ router.post('/exams', authMiddleware(['admin']), async (req, res) => {
   const client = await pool.connect();
   
   try {
-    const { exam_name, exam_date, start_time, end_time, description, subjects } = req.body;
+    const { exam_name, exam_date, start_time, end_time, description, strict_mode, subjects } = req.body;
 
     if (!exam_name || !exam_date) {
       return res.status(400).json({ error: 'Exam name and date are required' });
@@ -142,11 +142,11 @@ router.post('/exams', authMiddleware(['admin']), async (req, res) => {
 
     await client.query('BEGIN');
 
-    // Create exam
+    // Create exam with strict_mode
     const examResult = await client.query(
-      `INSERT INTO exams (exam_name, exam_date, start_time, end_time, description)
-       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-      [exam_name, exam_date, start_time || null, end_time || null, description || null]
+      `INSERT INTO exams (exam_name, exam_date, start_time, end_time, description, strict_mode)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [exam_name, exam_date, start_time || null, end_time || null, description || null, strict_mode !== undefined ? strict_mode : true]
     );
 
     const exam = examResult.rows[0];
@@ -206,15 +206,15 @@ router.put('/exams/:id', authMiddleware(['admin']), async (req, res) => {
   
   try {
     const { id } = req.params;
-    const { exam_name, exam_date, start_time, end_time, description } = req.body;
+    const { exam_name, exam_date, start_time, end_time, description, strict_mode } = req.body;
 
     await client.query('BEGIN');
 
     const result = await client.query(
       `UPDATE exams 
-       SET exam_name = $1, exam_date = $2, start_time = $3, end_time = $4, description = $5
-       WHERE id = $6 RETURNING *`,
-      [exam_name, exam_date, start_time || null, end_time || null, description || null, id]
+       SET exam_name = $1, exam_date = $2, start_time = $3, end_time = $4, description = $5, strict_mode = $6
+       WHERE id = $7 RETURNING *`,
+      [exam_name, exam_date, start_time || null, end_time || null, description || null, strict_mode !== undefined ? strict_mode : true, id]
     );
 
     if (result.rows.length === 0) {
