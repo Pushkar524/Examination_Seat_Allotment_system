@@ -59,7 +59,8 @@ export default function ExamManagement() {
     exam_date: '',
     start_time: '',
     end_time: '',
-    description: ''
+    description: '',
+    strict_mode: true  // Default to strict mode (final exam)
   })
 
   const [subjectForm, setSubjectForm] = useState({
@@ -103,7 +104,8 @@ export default function ExamManagement() {
       exam_date: '',
       start_time: '',
       end_time: '',
-      description: ''
+      description: '',
+      strict_mode: true  // Default to strict mode for new exams
     })
     setModalOpen(true)
   }
@@ -116,7 +118,8 @@ export default function ExamManagement() {
       exam_date: exam.exam_date.split('T')[0],
       start_time: exam.start_time || '',
       end_time: exam.end_time || '',
-      description: exam.description || ''
+      description: exam.description || '',
+      strict_mode: exam.strict_mode !== undefined ? exam.strict_mode : true  // Preserve existing mode or default to true
     })
     setModalOpen(true)
   }
@@ -457,10 +460,19 @@ export default function ExamManagement() {
           {exams.map(exam => (
             <div key={exam.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-6">
               <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">
-                    {exam.exam_name}
-                  </h2>
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
+                      {exam.exam_name}
+                    </h2>
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                      exam.strict_mode 
+                        ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' 
+                        : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                    }`}>
+                      {exam.strict_mode ? '🔒 Strict' : '🔓 Lenient'}
+                    </span>
+                  </div>
                   <div className="flex gap-4 text-sm text-gray-600 dark:text-gray-400">
                     <span>📅 {new Date(exam.exam_date).toLocaleDateString()}</span>
                     {exam.start_time && <span>🕐 {convertTo12Hour(exam.start_time)}</span>}
@@ -601,6 +613,48 @@ export default function ExamManagement() {
               rows="3"
               placeholder="Additional exam details..."
             />
+          </div>
+
+          {/* Strict Mode Toggle */}
+          <div className="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/30 dark:to-indigo-900/30 border-2 border-purple-200 dark:border-purple-700 rounded-xl p-6">
+            <div className="flex flex-col items-center gap-4">
+              <div className="flex items-center gap-4">
+                <div className="text-2xl">
+                  {examForm.strict_mode ? '📝' : '📄'}
+                </div>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      checked={examForm.strict_mode}
+                      onChange={(e) => setExamForm({...examForm, strict_mode: e.target.checked})}
+                      className="sr-only peer"
+                    />
+                    <div className="w-14 h-7 bg-gray-300 dark:bg-gray-600 rounded-full peer peer-checked:bg-green-500 transition-colors"></div>
+                    <div className="absolute left-1 top-1 w-5 h-5 bg-white rounded-full transition-transform peer-checked:translate-x-7 shadow-md"></div>
+                  </div>
+                  <div className="font-semibold text-gray-800 dark:text-white">
+                    {examForm.strict_mode ? '🔒 Strict Mode (Final Exam)' : '🔓 Lenient Mode (Unit Test)'}
+                  </div>
+                </label>
+                <div className="text-2xl">
+                  {examForm.strict_mode ? '🔒' : '🔓'}
+                </div>
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-300 text-center max-w-lg">
+                {examForm.strict_mode ? (
+                  <span>Students with the same subject <strong>cannot sit together</strong> (enforced strictly)</span>
+                ) : (
+                  <span>Column-wise allocation allowed if different subjects are unavailable</span>
+                )}
+              </div>
+              <div className="pt-3 border-t border-purple-200 dark:border-purple-700 w-full">
+                <p className="text-xs text-purple-700 dark:text-purple-300 text-center">
+                  💡 <strong>Tip:</strong> Enable strict mode for final exams where academic integrity is critical. 
+                  Disable for practice tests or unit exams where flexibility is acceptable.
+                </p>
+              </div>
+            </div>
           </div>
 
           <div className="flex gap-3 justify-end mt-6">
