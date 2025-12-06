@@ -296,13 +296,13 @@ export default function RegisterStudents(){
             <div className="flex gap-2">
               <button 
                 onClick={openAddModal} 
-                className="bg-blue-400 hover:bg-blue-500 px-4 py-2 rounded transition duration-200 flex items-center gap-2"
+                className="bg-blue-400 hover:bg-blue-500 px-4 py-2 rounded transition duration-200 flex items-center gap-2 text-white font-medium"
               >
                 ➕ Add Manually
               </button>
               <button 
                 onClick={openUploadModal} 
-                className="bg-green-400 hover:bg-green-500 px-4 py-2 rounded transition duration-200 flex items-center gap-2"
+                className="bg-green-400 hover:bg-green-500 px-4 py-2 rounded transition duration-200 flex items-center gap-2 text-white font-medium"
               >
                 📁 Import Excel/CSV
               </button>
@@ -399,7 +399,7 @@ Jane Smith,CS2021002,2003-08-20,Computer Science,2021-2025`}
 
           {/* File Upload */}
           <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Select Excel or CSV File
             </label>
             <input 
@@ -438,7 +438,7 @@ Jane Smith,CS2021002,2003-08-20,Computer Science,2021-2025`}
       <Modal open={addModalOpen} title="Add Student Manually" onClose={()=>setAddModalOpen(false)}>
         <form onSubmit={handleManualAdd} className="p-4 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Full Name *</label>
             <input
               type="text"
               value={studentForm.name}
@@ -450,7 +450,7 @@ Jane Smith,CS2021002,2003-08-20,Computer Science,2021-2025`}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Roll Number *</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Roll Number *</label>
             <input
               type="text"
               value={studentForm.roll_no}
@@ -462,7 +462,7 @@ Jane Smith,CS2021002,2003-08-20,Computer Science,2021-2025`}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth *</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date of Birth *</label>
             <input
               type="date"
               value={studentForm.date_of_birth}
@@ -473,7 +473,7 @@ Jane Smith,CS2021002,2003-08-20,Computer Science,2021-2025`}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Department *</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Department *</label>
             <input
               type="text"
               value={studentForm.department}
@@ -485,7 +485,7 @@ Jane Smith,CS2021002,2003-08-20,Computer Science,2021-2025`}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Academic Year *</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Academic Year *</label>
             <input
               type="text"
               value={studentForm.academic_year}
@@ -526,7 +526,7 @@ Jane Smith,CS2021002,2003-08-20,Computer Science,2021-2025`}
       <Modal open={editModalOpen} title="Edit Student" onClose={()=>setEditModalOpen(false)}>
         <form onSubmit={handleUpdate} className="p-4 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Full Name *</label>
             <input
               type="text"
               value={studentForm.name}
@@ -537,7 +537,7 @@ Jane Smith,CS2021002,2003-08-20,Computer Science,2021-2025`}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Roll Number *</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Roll Number *</label>
             <input
               type="text"
               value={studentForm.roll_no}
@@ -548,7 +548,7 @@ Jane Smith,CS2021002,2003-08-20,Computer Science,2021-2025`}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth *</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date of Birth *</label>
             <input
               type="date"
               value={studentForm.date_of_birth}
@@ -559,7 +559,7 @@ Jane Smith,CS2021002,2003-08-20,Computer Science,2021-2025`}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Department *</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Department *</label>
             <input
               type="text"
               value={studentForm.department}
@@ -570,7 +570,7 @@ Jane Smith,CS2021002,2003-08-20,Computer Science,2021-2025`}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Academic Year *</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Academic Year *</label>
             <input
               type="text"
               value={studentForm.academic_year}
@@ -609,7 +609,7 @@ Jane Smith,CS2021002,2003-08-20,Computer Science,2021-2025`}
       {/* Delete Confirmation Modal */}
       <Modal open={!!deleteId} title="Confirm Delete" onClose={()=>setDeleteId(null)}>
         <div className="p-4">
-          <p className="text-gray-700 mb-4">Are you sure you want to delete this student? This action cannot be undone.</p>
+          <p className="text-gray-700 dark:text-gray-300 mb-4">Are you sure you want to delete this student? This action cannot be undone.</p>
           <div className="flex justify-end gap-2">
             <button
               onClick={() => setDeleteId(null)}

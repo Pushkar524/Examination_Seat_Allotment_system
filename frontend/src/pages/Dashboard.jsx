@@ -109,20 +109,20 @@ export default function Dashboard(){
 
             {/* Quick Actions */}
             <div className="mb-8">
-              <h3 className="text-xl font-semibold text-gray-800 mb-4">Quick Actions</h3>
+              <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">Quick Actions</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <button
                   onClick={() => navigate('/students')}
-                  className="bg-white border-2 border-cyan-200 hover:border-cyan-400 rounded-xl p-6 text-left transition-all hover:shadow-lg group"
+                  className="bg-white dark:bg-gray-800 border-2 border-cyan-200 dark:border-cyan-600 hover:border-cyan-400 rounded-xl p-6 text-left transition-all hover:shadow-lg group"
                 >
                   <div className="text-cyan-600 text-3xl mb-3 group-hover:scale-110 transition-transform">📚</div>
-                  <div className="font-semibold text-gray-800 mb-1">Manage Students</div>
-                  <div className="text-sm text-gray-600">Upload and view student data</div>
+                  <div className="font-semibold text-gray-800 dark:text-white mb-1">Manage Students</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-300">Upload and view student data</div>
                 </button>
 
                 <button
                   onClick={() => navigate('/rooms')}
-                  className="bg-white border-2 border-rose-200 hover:border-rose-400 rounded-xl p-6 text-left transition-all hover:shadow-lg group"
+                  className="bg-white dark:bg-gray-800 border-2 border-rose-200 dark:border-rose-600 hover:border-rose-400 rounded-xl p-6 text-left transition-all hover:shadow-lg group"
                 >
                   <div className="text-rose-600 text-3xl mb-3 group-hover:scale-110 transition-transform">🏛️</div>
                   <div className="font-semibold text-gray-800 dark:text-white mb-1">Manage Rooms</div>
@@ -131,7 +131,7 @@ export default function Dashboard(){
 
                 <button
                   onClick={() => navigate('/staff')}
-                  className="bg-white border-2 border-purple-200 hover:border-purple-400 rounded-xl p-6 text-left transition-all hover:shadow-lg group"
+                  className="bg-white dark:bg-gray-800 border-2 border-purple-200 dark:border-purple-600 hover:border-purple-400 rounded-xl p-6 text-left transition-all hover:shadow-lg group"
                 >
                   <div className="text-purple-600 text-3xl mb-3 group-hover:scale-110 transition-transform">👨‍🏫</div>
                   <div className="font-semibold text-gray-800 dark:text-white mb-1">Invigilators</div>
@@ -150,8 +150,8 @@ export default function Dashboard(){
             </div>
 
             {/* Status Overview */}
-            <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">System Status</h3>
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm">
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">System Status</h3>
               <div className="space-y-4">
                 <div className="flex items-center justify-between pb-4 border-b">
                   <div className="flex items-center gap-3">
@@ -159,8 +159,8 @@ export default function Dashboard(){
                       {statistics.totalCapacity > 0 ? Math.round((statistics.allottedSeats / statistics.totalCapacity) * 100) : 0}%
                     </div>
                     <div>
-                      <div className="font-medium text-gray-800">Room Capacity Utilization</div>
-                      <div className="text-sm text-gray-500">{statistics.allottedSeats} of {statistics.totalCapacity} seats utilized</div>
+                      <div className="font-medium text-gray-800 dark:text-white">Room Capacity Utilization</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">{statistics.allottedSeats} of {statistics.totalCapacity} seats utilized</div>
                     </div>
                   </div>
                   <div className={`px-3 py-1 rounded-full text-sm font-medium ${
@@ -180,8 +180,8 @@ export default function Dashboard(){
                       {statistics.allottedSeats > 0 ? Math.round((statistics.allottedSeats / statistics.totalStudents) * 100) : 0}%
                     </div>
                     <div>
-                      <div className="font-medium text-gray-800">Seat Allotment Progress</div>
-                      <div className="text-sm text-gray-500">{statistics.allottedSeats} of {statistics.totalStudents} students allotted</div>
+                      <div className="font-medium text-gray-800 dark:text-white">Seat Allotment Progress</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">{statistics.allottedSeats} of {statistics.totalStudents} students allotted</div>
                     </div>
                   </div>
                   <div className={`px-3 py-1 rounded-full text-sm font-medium ${
@@ -201,8 +201,8 @@ export default function Dashboard(){
                       {statistics.roomsUsed}
                     </div>
                     <div>
-                      <div className="font-medium text-gray-800">Rooms in Use</div>
-                      <div className="text-sm text-gray-500">{statistics.roomsUsed} of {statistics.totalRooms} rooms utilized</div>
+                      <div className="font-medium text-gray-800 dark:text-white">Rooms in Use</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">{statistics.roomsUsed} of {statistics.totalRooms} rooms utilized</div>
                     </div>
                   </div>
                   <div className="px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-700">
@@ -214,12 +214,12 @@ export default function Dashboard(){
 
             {/* Info Banner */}
             {statistics.totalStudents === 0 && (
-              <div className="mt-6 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+              <div className="mt-6 bg-yellow-50 dark:bg-yellow-900/30 border-l-4 border-yellow-400 dark:border-yellow-600 p-4 rounded">
                 <div className="flex items-start">
-                  <div className="text-yellow-600 text-xl mr-3">⚠️</div>
+                  <div className="text-yellow-600 dark:text-yellow-400 text-xl mr-3">⚠️</div>
                   <div>
-                    <div className="font-semibold text-gray-800 mb-1">Getting Started</div>
-                    <div className="text-sm text-gray-700">
+                    <div className="font-semibold text-gray-800 dark:text-white mb-1">Getting Started</div>
+                    <div className="text-sm text-gray-700 dark:text-gray-300">
                       Start by uploading student data and configuring examination rooms. Once data is ready, proceed to seat allotment.
                     </div>
                   </div>

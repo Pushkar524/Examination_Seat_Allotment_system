@@ -266,13 +266,13 @@ export default function Rooms(){
             <div className="flex gap-2">
               <button 
                 onClick={openAddModal} 
-                className="bg-blue-400 hover:bg-blue-500 px-4 py-2 rounded transition duration-200 flex items-center gap-2"
+                className="bg-blue-400 hover:bg-blue-500 px-4 py-2 rounded transition duration-200 flex items-center gap-2 text-white font-medium"
               >
                 ➕ Add Manually
               </button>
               <button 
                 onClick={openUploadModal} 
-                className="bg-green-400 hover:bg-green-500 px-4 py-2 rounded transition duration-200 flex items-center gap-2"
+                className="bg-green-400 hover:bg-green-500 px-4 py-2 rounded transition duration-200 flex items-center gap-2 text-white font-medium"
               >
                 📁 Import Excel/CSV
               </button>
@@ -370,7 +370,7 @@ R201,30,2`}
 
           {/* File Upload */}
           <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-$1">
               Select Excel or CSV File
             </label>
             <input 
@@ -409,7 +409,7 @@ R201,30,2`}
       <Modal open={addModalOpen} title="Add Room Manually" onClose={()=>setAddModalOpen(false)}>
         <form onSubmit={handleManualAdd} className="p-4 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Room Number *</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-$1">Room Number *</label>
             <input
               type="text"
               value={roomForm.room_no}
@@ -421,7 +421,7 @@ R201,30,2`}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Capacity *</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-$1">Capacity *</label>
             <input
               type="number"
               value={roomForm.capacity}
@@ -434,7 +434,7 @@ R201,30,2`}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Floor</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-$1">Floor</label>
             <input
               type="text"
               value={roomForm.floor}
@@ -448,7 +448,7 @@ R201,30,2`}
             <h4 className="text-sm font-semibold text-gray-700 mb-3">🎫 Seating Layout (Optional)</h4>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Number of Benches (Rows)</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-$1">Number of Benches (Rows)</label>
                 <input
                   type="number"
                   value={roomForm.number_of_benches}
@@ -467,7 +467,7 @@ R201,30,2`}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Seats per Bench</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-$1">Seats per Bench</label>
                 <input
                   type="number"
                   value={roomForm.seats_per_bench}
@@ -523,7 +523,7 @@ R201,30,2`}
       <Modal open={editModalOpen} title="Edit Room" onClose={()=>setEditModalOpen(false)}>
         <form onSubmit={handleUpdate} className="p-4 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Room Number *</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-$1">Room Number *</label>
             <input
               type="text"
               value={roomForm.room_no}
@@ -535,7 +535,7 @@ R201,30,2`}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Capacity *</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-$1">Capacity *</label>
             <input
               type="number"
               value={roomForm.capacity}
@@ -548,7 +548,7 @@ R201,30,2`}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Floor</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-$1">Floor</label>
             <input
               type="text"
               value={roomForm.floor}
@@ -562,7 +562,7 @@ R201,30,2`}
             <h4 className="text-sm font-semibold text-gray-700 mb-3">🎫 Seating Layout (Optional)</h4>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Number of Benches (Rows)</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-$1">Number of Benches (Rows)</label>
                 <input
                   type="number"
                   value={roomForm.number_of_benches}
@@ -581,7 +581,7 @@ R201,30,2`}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Seats per Bench</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-$1">Seats per Bench</label>
                 <input
                   type="number"
                   value={roomForm.seats_per_bench}
@@ -636,7 +636,7 @@ R201,30,2`}
       {/* Delete Confirmation Modal */}
       <Modal open={!!deleteId} title="Confirm Delete" onClose={()=>setDeleteId(null)}>
         <div className="p-4 space-y-4">
-          <p className="text-gray-700">
+          <p className="text-gray-700 dark:text-gray-300">
             Are you sure you want to delete this room? This action cannot be undone.
           </p>
           <div className="bg-yellow-50 border-l-4 border-yellow-500 p-3 rounded">

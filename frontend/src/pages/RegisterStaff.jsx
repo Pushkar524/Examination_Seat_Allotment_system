@@ -231,13 +231,13 @@ export default function RegisterStaff(){
             <div className="flex gap-2">
               <button 
                 onClick={openAddModal} 
-                className="bg-blue-400 hover:bg-blue-500 px-4 py-2 rounded transition duration-200 flex items-center gap-2"
+                className="bg-blue-400 hover:bg-blue-500 px-4 py-2 rounded transition duration-200 flex items-center gap-2 text-white font-medium"
               >
                 ➕ Add Manually
               </button>
               <button 
                 onClick={openUploadModal} 
-                className="bg-green-400 hover:bg-green-500 px-4 py-2 rounded transition duration-200 flex items-center gap-2"
+                className="bg-green-400 hover:bg-green-500 px-4 py-2 rounded transition duration-200 flex items-center gap-2 text-white font-medium"
               >
                 📁 Import Excel/CSV
               </button>
@@ -327,7 +327,7 @@ Prof. Maria Johnson,INV002`}
 
           {/* File Upload */}
           <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Select Excel or CSV File
             </label>
             <input 
@@ -366,7 +366,7 @@ Prof. Maria Johnson,INV002`}
       <Modal open={addModalOpen} title="Add Invigilator Manually" onClose={()=>setAddModalOpen(false)}>
         <form onSubmit={handleManualAdd} className="p-4 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Invigilator ID *</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Invigilator ID *</label>
             <input
               type="text"
               value={invigilatorForm.invigilator_id}
@@ -378,7 +378,7 @@ Prof. Maria Johnson,INV002`}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Full Name *</label>
             <input
               type="text"
               value={invigilatorForm.name}
@@ -419,7 +419,7 @@ Prof. Maria Johnson,INV002`}
       <Modal open={editModalOpen} title="Edit Invigilator" onClose={()=>setEditModalOpen(false)}>
         <form onSubmit={handleUpdate} className="p-4 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Invigilator ID *</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Invigilator ID *</label>
             <input
               type="text"
               value={invigilatorForm.invigilator_id}
@@ -431,7 +431,7 @@ Prof. Maria Johnson,INV002`}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Full Name *</label>
             <input
               type="text"
               value={invigilatorForm.name}
@@ -471,7 +471,7 @@ Prof. Maria Johnson,INV002`}
       {/* Delete Confirmation Modal */}
       <Modal open={!!deleteId} title="Confirm Delete" onClose={()=>setDeleteId(null)}>
         <div className="p-4 space-y-4">
-          <p className="text-gray-700">
+          <p className="text-gray-700 dark:text-gray-300">
             Are you sure you want to delete this invigilator? This action cannot be undone.
           </p>
           <div className="flex justify-end gap-2 pt-4 border-t">
