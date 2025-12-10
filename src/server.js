@@ -5,6 +5,7 @@ const authRoutes = require('./routes/auth');
 const uploadRoutes = require('./routes/upload');
 const allotmentRoutes = require('./routes/allotment');
 const exportRoutes = require('./routes/export');
+const subjectsRoutes = require('./routes/subjects');
 const examsRoutes = require('./routes/exams');
 const departmentSubjectsRoutes = require('./routes/department-subjects');
 
@@ -21,6 +22,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/allotment', allotmentRoutes);
 app.use('/api/export', exportRoutes);
+app.use('/api/subjects', subjectsRoutes);
 app.use('/api/exams', examsRoutes);
 app.use('/api/dept-subjects', departmentSubjectsRoutes);
 

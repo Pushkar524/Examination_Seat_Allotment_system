@@ -4,83 +4,128 @@ const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
 
-// Trigger seat allotment process
-// This is the core algorithm for assigning seats to students
-// It clears existing allotments and re-assigns all students to available rooms
-// Students are sorted by roll number and assigned sequentially to rooms
+// ============================================================================
+// SAFE PER-SUBJECT SEAT ALLOTMENT
+// ============================================================================
+// WARNING: Global/all-students allocation disabled to prevent accidental deletion.
+// You MUST provide subject_id to allocate seats for a specific subject only.
+// This ensures existing allocations for other subjects are NOT cleared.
 router.post('/allot', authMiddleware(['admin']), async (req, res) => {
   const client = await pool.connect();
   
   try {
-    const { room_ids } = req.body; // Optional: specific rooms to use for allotment
-    await client.query('BEGIN');
+    const { subject_id, room_ids } = req.body;
 
-    // Clear existing allotments to start fresh
-    await client.query('DELETE FROM seat_allotments');
-
-    // Get all students ordered by roll number
-    // This ensures a deterministic and logical seating order
-    const studentsResult = await client.query(
-      'SELECT id, roll_no FROM students ORDER BY roll_no'
-    );
-    const students = studentsResult.rows;
-
-    if (students.length === 0) {
-      return res.status(400).json({ error: 'No students found to allot seats' });
-    }
-
-    // Get rooms - either selected rooms or all rooms
-    // Ordered by room_no to fill rooms in a specific order
-    let roomsQuery = 'SELECT id, room_no, capacity FROM rooms';
-    let roomsParams = [];
-    
-    if (room_ids && room_ids.length > 0) {
-      roomsQuery += ' WHERE id = ANY($1::int[])';
-      roomsParams = [room_ids];
-    }
-    
-    roomsQuery += ' ORDER BY room_no';
-
-    const roomsResult = await client.query(roomsQuery, roomsParams);
-    const rooms = roomsResult.rows;
-
-    if (rooms.length === 0) {
-      return res.status(400).json({ error: 'No rooms found for seat allotment' });
-    }
-
-    // Calculate total capacity of all available rooms
-    const totalCapacity = rooms.reduce((sum, room) => sum + parseInt(room.capacity), 0);
-
-    // Check if we have enough seats for all students
-    if (students.length > totalCapacity) {
+    // Validate required fields
+    if (!subject_id) {
       return res.status(400).json({ 
-        error: 'Insufficient room capacity',
-        studentsCount: students.length,
-        totalCapacity
+        error: 'subject_id is required',
+        message: 'Global allocation disabled for safety. Provide subject_id to allocate specific subject.'
       });
     }
 
-    // Allot seats algorithm
-    // Iterates through rooms and fills them up to capacity
+    if (!room_ids || !Array.isArray(room_ids) || room_ids.length === 0) {
+      return res.status(400).json({ error: 'room_ids array is required' });
+    }
+
+    await client.query('BEGIN');
+
+    // Step 1: Get subject details and validate it exists
+    const subjectResult = await client.query(
+      'SELECT * FROM subjects WHERE id = $1',
+      [subject_id]
+    );
+
+    if (subjectResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Subject not found' });
+    }
+
+    const subject = subjectResult.rows[0];
+
+    // Step 2: Check if allocations already exist for this subject (409 conflict)
+    const existingCheck = await client.query(
+      'SELECT COUNT(*) as count FROM seat_allotments WHERE subject_id = $1',
+      [subject_id]
+    );
+
+    if (parseInt(existingCheck.rows[0].count) > 0) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ 
+        error: `Seat allocations already exist for subject '${subject.subject_code}'`,
+        existing_allocations: parseInt(existingCheck.rows[0].count),
+        suggestion: 'Delete existing allocations first using DELETE endpoint'
+      });
+    }
+
+    // Step 3: Get students for this subject's department
+    const studentsResult = await client.query(
+      'SELECT id, roll_no, name, department FROM students WHERE department = $1 ORDER BY roll_no',
+      [subject.department]
+    );
+
+    const students = studentsResult.rows;
+
+    if (students.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ 
+        error: `No students found in department '${subject.department}'` 
+      });
+    }
+
+    // Step 4: Get selected rooms
+    const roomsResult = await client.query(
+      'SELECT id, room_no, capacity FROM rooms WHERE id = ANY($1::int[]) ORDER BY room_no',
+      [room_ids]
+    );
+
+    const rooms = roomsResult.rows;
+
+    if (rooms.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'No valid rooms found' });
+    }
+
+    // Step 5: Calculate total capacity and validate
+    const totalCapacity = rooms.reduce((sum, room) => sum + parseInt(room.capacity), 0);
+
+    if (students.length > totalCapacity) {
+      await client.query('ROLLBACK');
+      const shortage = students.length - totalCapacity;
+      return res.status(400).json({ 
+        error: 'Insufficient room capacity',
+        students_count: students.length,
+        total_capacity: totalCapacity,
+        shortage: shortage,
+        message: `Need ${shortage} more seats. Add more rooms or increase room capacity.`
+      });
+    }
+
+    // Step 6: Allocate seats room-by-room, seat-by-seat
     let studentIndex = 0;
     let allottedCount = 0;
+    const allocations = [];
 
     for (const room of rooms) {
-      // Fill current room seat by seat
       for (let seatNumber = 1; seatNumber <= room.capacity && studentIndex < students.length; seatNumber++) {
         const student = students[studentIndex];
         
         await client.query(
-          `INSERT INTO seat_allotments (student_id, room_id, seat_number)
-           VALUES ($1, $2, $3)`,
-          [student.id, room.id, seatNumber]
+          `INSERT INTO seat_allotments (student_id, room_id, seat_number, subject_id)
+           VALUES ($1, $2, $3, $4)`,
+          [student.id, room.id, seatNumber, subject_id]
         );
+
+        allocations.push({
+          student_roll_no: student.roll_no,
+          room_no: room.room_no,
+          seat_number: seatNumber
+        });
 
         allottedCount++;
         studentIndex++;
       }
 
-      // Stop if all students are assigned
       if (studentIndex >= students.length) {
         break;
       }
@@ -90,9 +135,16 @@ router.post('/allot', authMiddleware(['admin']), async (req, res) => {
 
     res.json({
       message: 'Seat allotment completed successfully',
-      totalStudents: students.length,
-      allottedSeats: allottedCount,
-      roomsUsed: rooms.length
+      subject: {
+        subject_code: subject.subject_code,
+        subject_name: subject.subject_name,
+        department: subject.department,
+        exam_date: subject.exam_date
+      },
+      total_students: students.length,
+      allotted_seats: allottedCount,
+      rooms_used: rooms.length,
+      allocations: allocations.slice(0, 10) // Preview first 10
     });
 
   } catch (error) {
@@ -183,7 +235,10 @@ router.get('/allotments', authMiddleware(['admin']), async (req, res) => {
         sa.student_id,
         sa.room_id,
         sa.seat_number,
-        sa.subject,
+        sa.subject_id,
+        sub.subject_code,
+        sub.subject_name,
+        sub.exam_date,
         s.name as student_name,
         s.roll_no,
         s.department,
@@ -193,7 +248,8 @@ router.get('/allotments', authMiddleware(['admin']), async (req, res) => {
       FROM seat_allotments sa
       JOIN students s ON sa.student_id = s.id
       JOIN rooms r ON sa.room_id = r.id
-      ORDER BY r.room_no, sa.seat_number
+      LEFT JOIN subjects sub ON sa.subject_id = sub.id
+      ORDER BY sub.exam_date NULLS LAST, r.room_no, sa.seat_number
     `);
 
     res.json(result.rows);
