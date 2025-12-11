@@ -159,7 +159,7 @@ router.post('/allot', authMiddleware(['admin']), async (req, res) => {
 // Create manual seat allotment
 router.post('/allotments', authMiddleware(['admin']), async (req, res) => {
   try {
-    const { student_id, room_id, seat_number } = req.body;
+    const { student_id, room_id, seat_number, subject_id } = req.body;
 
     if (!student_id || !room_id || !seat_number) {
       return res.status(400).json({ error: 'Student ID, room ID, and seat number are required' });
@@ -171,24 +171,34 @@ router.post('/allotments', authMiddleware(['admin']), async (req, res) => {
       return res.status(404).json({ error: 'Student not found' });
     }
 
-    // Check if student already has an allotment
-    const existingAllotment = await pool.query(
-      'SELECT * FROM seat_allotments WHERE student_id = $1',
-      [student_id]
-    );
+    // Check if student already has an allotment for this subject
+    let existingAllotmentQuery = 'SELECT * FROM seat_allotments WHERE student_id = $1';
+    const queryParams = [student_id];
+    
+    if (subject_id) {
+      existingAllotmentQuery += ' AND subject_id = $2';
+      queryParams.push(subject_id);
+    }
+    
+    const existingAllotment = await pool.query(existingAllotmentQuery, queryParams);
 
     if (existingAllotment.rows.length > 0) {
-      return res.status(400).json({ error: 'Student already has a seat allotment. Please delete the existing one first.' });
+      return res.status(400).json({ error: 'Student already has a seat allotment for this subject. Please delete the existing one first.' });
     }
 
-    // Check if the seat is already occupied
-    const seatCheck = await pool.query(
-      'SELECT * FROM seat_allotments WHERE room_id = $1 AND seat_number = $2',
-      [room_id, seat_number]
-    );
+    // Check if the seat is already occupied (for the same subject)
+    let seatCheckQuery = 'SELECT * FROM seat_allotments WHERE room_id = $1 AND seat_number = $2';
+    const seatCheckParams = [room_id, seat_number];
+    
+    if (subject_id) {
+      seatCheckQuery += ' AND subject_id = $3';
+      seatCheckParams.push(subject_id);
+    }
+    
+    const seatCheck = await pool.query(seatCheckQuery, seatCheckParams);
 
     if (seatCheck.rows.length > 0) {
-      return res.status(400).json({ error: 'This seat is already occupied' });
+      return res.status(400).json({ error: 'This seat is already occupied for this subject' });
     }
 
     // Check if seat number exceeds room capacity
@@ -208,12 +218,20 @@ router.post('/allotments', authMiddleware(['admin']), async (req, res) => {
     }
 
     // Insert allotment
-    const result = await pool.query(
-      `INSERT INTO seat_allotments (student_id, room_id, seat_number)
+    let insertQuery, insertParams;
+    if (subject_id) {
+      insertQuery = `INSERT INTO seat_allotments (student_id, room_id, seat_number, subject_id)
+       VALUES ($1, $2, $3, $4)
+       RETURNING *`;
+      insertParams = [student_id, room_id, seat_number, subject_id];
+    } else {
+      insertQuery = `INSERT INTO seat_allotments (student_id, room_id, seat_number)
        VALUES ($1, $2, $3)
-       RETURNING *`,
-      [student_id, room_id, seat_number]
-    );
+       RETURNING *`;
+      insertParams = [student_id, room_id, seat_number];
+    }
+    
+    const result = await pool.query(insertQuery, insertParams);
 
     res.json({
       message: 'Seat allotted successfully',
