@@ -62,7 +62,7 @@ export default function Sidebar(){
           {(isAdmin || role === 'admin') && (
             <>
               {!collapsed && <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-6 mt-4 mb-2">SEAT ALLOTMENT</div>}
-              <MenuItem to="/pattern-allotment" collapsed={collapsed}>{collapsed ? '🎯' : '🎯 SEAT ALLOTMENT'}</MenuItem>
+              <MenuItem to="/seat-allotment" collapsed={collapsed}>{collapsed ? '🎯' : '🎯 SEAT ALLOTMENT'}</MenuItem>
               <MenuItem to="/allotment-reports" collapsed={collapsed}>{collapsed ? '📋' : '📋 REPORTS'}</MenuItem>
               
               {!collapsed && <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-6 mt-4 mb-2">MANAGEMENT</div>}
