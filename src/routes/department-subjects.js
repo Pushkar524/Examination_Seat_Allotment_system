@@ -224,12 +224,16 @@ router.post('/exams/:examId/allot-seats', authMiddleware(['admin']), async (req,
     const studentsToAllot = [];
     for (const [dept, students] of Object.entries(studentsByDept)) {
       if (departmentSubjects[dept]) {
-        // Each student gets the first subject assigned to their department
-        const firstSubject = departmentSubjects[dept][0];
-        students.forEach(student => {
+        const subjectsForDept = departmentSubjects[dept];
+        
+        // Distribute students evenly across all subjects assigned to this department
+        students.forEach((student, index) => {
+          const subjectIndex = index % subjectsForDept.length;
+          const assignedSubject = subjectsForDept[subjectIndex];
+          
           studentsToAllot.push({
             ...student,
-            subject_id: firstSubject.subject_id
+            subject_id: assignedSubject.subject_id
           });
         });
       }
@@ -353,9 +357,9 @@ router.post('/exams/:examId/allot-seats', authMiddleware(['admin']), async (req,
                   const student = studentsForThisSubject.shift();
                   
                   await client.query(`
-                    INSERT INTO seat_allotments (student_id, room_id, seat_number, exam_id, subject_id, allotment_pattern)
-                    VALUES ($1, $2, $3, $4, $5, $6)
-                  `, [student.id, room.id, seatNumber, examId, student.subject_id, pattern]);
+                    INSERT INTO seat_allotments (student_id, room_id, seat_number, exam_id, subject_id)
+                    VALUES ($1, $2, $3, $4, $5)
+                  `, [student.id, room.id, seatNumber, examId, student.subject_id]);
                   
                   allocatedCount++;
                 }
@@ -407,9 +411,9 @@ router.post('/exams/:examId/allot-seats', authMiddleware(['admin']), async (req,
                   const student = studentsForThisSubject.shift();
                   
                   await client.query(`
-                    INSERT INTO seat_allotments (student_id, room_id, seat_number, exam_id, subject_id, allotment_pattern)
-                    VALUES ($1, $2, $3, $4, $5, $6)
-                  `, [student.id, room.id, seatNumber, examId, student.subject_id, pattern]);
+                    INSERT INTO seat_allotments (student_id, room_id, seat_number, exam_id, subject_id)
+                    VALUES ($1, $2, $3, $4, $5)
+                  `, [student.id, room.id, seatNumber, examId, student.subject_id]);
                   
                   allocatedCount++;
                 }
@@ -448,9 +452,9 @@ router.post('/exams/:examId/allot-seats', authMiddleware(['admin']), async (req,
         
         // Insert allotment
         await client.query(`
-          INSERT INTO seat_allotments (student_id, room_id, seat_number, exam_id, subject_id, allotment_pattern)
-          VALUES ($1, $2, $3, $4, $5, $6)
-        `, [student.id, room.id, currentSeatNumber, examId, student.subject_id, pattern]);
+          INSERT INTO seat_allotments (student_id, room_id, seat_number, exam_id, subject_id)
+          VALUES ($1, $2, $3, $4, $5)
+        `, [student.id, room.id, currentSeatNumber, examId, student.subject_id]);
         
         allocatedCount++;
         currentSeatNumber++;
