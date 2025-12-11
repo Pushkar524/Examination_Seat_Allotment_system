@@ -355,6 +355,34 @@ export const exportAPI = {
 
 // Exams APIs
 export const examsAPI = {
+  getAllExams: async () => {
+    return await apiCall('/exams/exams');
+  },
+
+  getExam: async (id) => {
+    return await apiCall(`/exams/exams/${id}`);
+  },
+
+  createExam: async (examData) => {
+    return await apiCall('/exams/exams', {
+      method: 'POST',
+      body: JSON.stringify(examData),
+    });
+  },
+
+  updateExam: async (id, examData) => {
+    return await apiCall(`/exams/exams/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(examData),
+    });
+  },
+
+  deleteExam: async (id) => {
+    return await apiCall(`/exams/exams/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
   deleteAllExams: async () => {
     return await apiCall('/exams/exams/all', {
       method: 'DELETE',
@@ -387,6 +415,43 @@ export const deptSubjectsAPI = {
   },
 };
 
+// Subjects APIs
+export const subjectsAPI = {
+  getAllSubjects: async () => {
+    const response = await apiCall('/subjects');
+    // Backend returns { total, subjects }, extract subjects array
+    return response.subjects || [];
+  },
+
+  getSubject: async (id) => {
+    return await apiCall(`/subjects/${id}`);
+  },
+
+  createSubject: async (subjectData) => {
+    return await apiCall('/subjects', {
+      method: 'POST',
+      body: JSON.stringify(subjectData),
+    });
+  },
+
+  updateSubject: async (id, subjectData) => {
+    return await apiCall(`/subjects/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(subjectData),
+    });
+  },
+
+  deleteSubject: async (id) => {
+    return await apiCall(`/subjects/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  getSubjectsByDepartment: async (department) => {
+    return await apiCall(`/subjects/by-department/${encodeURIComponent(department)}`);
+  },
+};
+
 export default {
   authAPI,
   uploadAPI,
@@ -394,4 +459,5 @@ export default {
   exportAPI,
   examsAPI,
   deptSubjectsAPI,
+  subjectsAPI,
 };
